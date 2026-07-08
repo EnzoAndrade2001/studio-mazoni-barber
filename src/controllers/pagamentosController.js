@@ -1,0 +1,177 @@
+const agendamentos = require('../models/agendamentos');
+const pagamentos = require('../models/pagamentos');
+const asaas = require('../services/asaas');
+const mercadoPago = require('../services/mercadoPago');
+const { HttpError } = require('../utils/httpError');
+const validacao = require('../utils/validation');
+const regrasPagamento = require('../utils/paymentRules');
+
+const metodosOnline = ['pix_online', 'cartao_online'];
+
+function validarMetodoOnline(value = 'pix_online') {
+    const metodo = validacao.texto(value, 'metodo', { max: 30 });
+    if (!metodosOnline.includes(metodo)) throw new HttpError(400, `Metodo online invalido. Use: ${metodosOnline.join(', ')}.`);
+    return metodo;
+}
+
+async function listar(req, res) {
+    res.json(await pagamentos.listar({
+        agendamentoId: req.query.agendamento_id ? validacao.id(req.query.agendamento_id, 'agendamento_id') : undefined
+    }));
+}
+
+async function buscar(req, res) {
+    const pagamento = await pagamentos.buscarPorId(validacao.id(req.params.id));
+    if (!pagamento) throw new HttpError(404, 'Pagamento nao encontrado.');
+    res.json(pagamento);
+}
+
+async function registrarManual(req, res) {
+    const agendamentoId = validacao.id(req.body.agendamento_id, 'agendamento_id');
+    const pagamento = await pagamentos.registrarManual({
+        agendamento_id: agendamentoId,
+        valor: validacao.dinheiro(req.body.valor, 'valor'),
+        metodo: regrasPagamento.validarMetodoManual(req.body.metodo || 'dinheiro'),
+        tipo: regrasPagamento.validarTipoPagamento(req.body.tipo || 'manual')
+    });
+    res.status(201).json(pagamento);
+}
+
+async function criarAsaas(req, res) {
+    if (!asaas.estaConfigurado()) throw new HttpError(503, 'ASAAS_API_KEY nao configurada.');
+    const agendamentoId = validacao.id(req.body.agendamento_id || req.params.agendamentoId, 'agendamento_id');
+    const agendamento = await agendamentos.buscarPorId(agendamentoId);
+    if (!agendamento) throw new HttpError(404, 'Agendamento nao encontrado.');
+    if (['cancelado', 'faltou'].includes(agendamento.status)) {
+        throw new HttpError(409, 'Nao e possivel cobrar um agendamento cancelado ou com falta.');
+    }
+    const metodo = validarMetodoOnline(req.body.metodo || agendamento.metodo_pagamento_preferido || 'pix_online');
+    const tipo = regrasPagamento.validarTipoPagamento(req.body.tipo || 'total');
+    const valorPadrao = agendamento.preco;
+    const valor = req.body.valor !== undefined ? validacao.dinheiro(req.body.valor, 'valor') : valorPadrao;
+    if (valor <= 0) throw new HttpError(400, 'Valor de cobranca deve ser maior que zero.');
+    const cpfCnpj = validacao.cpfCnpj(req.body.cpf_cnpj);
+    const abertos = await pagamentos.listar({ agendamentoId });
+    const cobrancaAberta = abertos.find((pagamento) => (
+        pagamento.provedor === 'asaas'
+        && pagamento.status === 'pendente'
+        && ['pix_online', 'cartao_online'].includes(pagamento.metodo)
+    ));
+    if (cobrancaAberta) {
+        throw new HttpError(409, 'Ja existe uma cobranca online pendente para esse agendamento.', { pagamento: cobrancaAberta });
+    }
+    const pagamento = await pagamentos.criarPendente({
+        agendamento_id: agendamentoId,
+        valor,
+        provedor: 'asaas',
+        metodo,
+        tipo
+    });
+    const cobranca = metodo === 'pix_online'
+        ? await asaas.criarPagamentoPix({ agendamento, pagamento, cliente: {
+            nome: agendamento.cliente_nome,
+            email: req.body.email || undefined
+        }, cpfCnpj })
+        : await asaas.criarPagamentoCartao({ agendamento, pagamento, cliente: {
+            nome: agendamento.cliente_nome,
+            email: req.body.email || undefined
+        }, cpfCnpj });
+    const atualizado = await pagamentos.atualizar(pagamento.id, {
+        status: asaas.mapearStatus(cobranca.payment.status),
+        asaas_payment_id: cobranca.payment.id,
+        checkout_url: cobranca.payment.invoiceUrl,
+        payload: asaas.payloadSeguro(cobranca)
+    });
+    if (atualizado.status === 'pago') await pagamentos.sincronizarAgendamento(undefined, agendamentoId);
+    res.status(201).json(atualizado);
+}
+
+async function criarMercadoPago(req, res) {
+    if (!mercadoPago.estaConfigurado()) throw new HttpError(503, 'MERCADO_PAGO_ACCESS_TOKEN nao configurado.');
+    const agendamentoId = validacao.id(req.body.agendamento_id || req.params.agendamentoId, 'agendamento_id');
+    const agendamento = await agendamentos.buscarPorId(agendamentoId);
+    if (!agendamento) throw new HttpError(404, 'Agendamento nao encontrado.');
+    if (['cancelado', 'faltou'].includes(agendamento.status)) {
+        throw new HttpError(409, 'Nao e possivel cobrar um agendamento cancelado ou com falta.');
+    }
+    const metodo = validarMetodoOnline(req.body.metodo || agendamento.metodo_pagamento_preferido || 'pix_online');
+    const tipo = regrasPagamento.validarTipoPagamento(req.body.tipo || 'total');
+    const valorPadrao = agendamento.preco;
+    const valor = req.body.valor !== undefined ? validacao.dinheiro(req.body.valor, 'valor') : valorPadrao;
+    if (valor <= 0) throw new HttpError(400, 'Valor de cobranca deve ser maior que zero.');
+    const abertos = await pagamentos.listar({ agendamentoId });
+    const cobrancaAberta = abertos.find((pagamento) => (
+        pagamento.provedor === 'mercado_pago'
+        && pagamento.status === 'pendente'
+        && ['pix_online', 'cartao_online'].includes(pagamento.metodo)
+    ));
+    if (cobrancaAberta) {
+        throw new HttpError(409, 'Ja existe uma cobranca Mercado Pago pendente para esse agendamento.', { pagamento: cobrancaAberta });
+    }
+    const pagamento = await pagamentos.criarPendente({
+        agendamento_id: agendamentoId,
+        valor,
+        provedor: 'mercado_pago',
+        metodo,
+        tipo
+    });
+    const preferencia = await mercadoPago.criarPreferencia({
+        agendamento,
+        pagamento,
+        cliente: {
+            nome: agendamento.cliente_nome,
+            email: req.body.email || undefined
+        },
+        metodo
+    });
+    const atualizado = await pagamentos.atualizar(pagamento.id, {
+        status: 'pendente',
+        mercado_pago_preference_id: String(preferencia.id),
+        checkout_url: preferencia.init_point,
+        sandbox_checkout_url: preferencia.sandbox_init_point,
+        payload: mercadoPago.payloadSeguro(preferencia)
+    });
+    res.status(201).json(atualizado);
+}
+
+async function webhookAsaas(req, res) {
+    const token = req.get('asaas-access-token') || req.get('access_token') || req.query.token;
+    if (process.env.ASAAS_WEBHOOK_TOKEN && token !== process.env.ASAAS_WEBHOOK_TOKEN) {
+        throw new HttpError(401, 'Token do webhook Asaas invalido.');
+    }
+    const payment = req.body.payment || {};
+    await pagamentos.atualizarPorAsaas({
+        paymentId: payment.id,
+        externalReference: payment.externalReference,
+        status: asaas.mapearStatus(payment.status),
+        valor: payment.value,
+        payload: req.body
+    });
+    res.status(200).json({ recebido: true });
+}
+
+async function webhookMercadoPago(req, res) {
+    if (process.env.MERCADO_PAGO_WEBHOOK_SECRET) {
+        const token = req.get('x-webhook-secret') || req.query.token;
+        if (token !== process.env.MERCADO_PAGO_WEBHOOK_SECRET) {
+            throw new HttpError(401, 'Token do webhook Mercado Pago invalido.');
+        }
+    }
+    const topic = req.body.type || req.body.topic || req.query.topic;
+    const id = (req.body.data && req.body.data.id) || req.body.id || req.query.id;
+    if (!id || !String(topic || '').includes('payment')) {
+        return res.status(200).json({ recebido: true, ignorado: true });
+    }
+    const payment = await mercadoPago.buscarPagamento(id);
+    await pagamentos.atualizarPorMercadoPago({
+        paymentId: payment.id,
+        preferenceId: payment.preference_id,
+        externalReference: payment.external_reference,
+        status: mercadoPago.statusPagamento(payment.status),
+        valor: payment.transaction_amount,
+        payload: mercadoPago.payloadSeguro(payment)
+    });
+    res.status(200).json({ recebido: true });
+}
+
+module.exports = { listar, buscar, registrarManual, criarAsaas, criarMercadoPago, webhookAsaas, webhookMercadoPago };

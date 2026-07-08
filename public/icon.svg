@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title">
+  <title id="title">Studio Mazoni Barber</title>
+  <rect width="512" height="512" rx="112" fill="#111"/>
+  <path d="M104 162h250l-92 188h146v38H194l92-188H104z" fill="#fff"/>
+  <path d="M118 348h122v38H118zM333 121c48 10 78 36 92 74-42-5-72-21-92-48z" fill="#d7d7d7"/>
+  <path d="M349 139l60 204" stroke="#fff" stroke-width="28" stroke-linecap="round"/>
+  <circle cx="418" cy="159" r="24" fill="#111" stroke="#fff" stroke-width="16"/>
+  <path d="M398 186c20 30 45 40 78 34" fill="none" stroke="#fff" stroke-width="18" stroke-linecap="round"/>
+  <text x="256" y="444" text-anchor="middle" font-family="Arial, sans-serif" font-size="48" font-weight="900" letter-spacing="12" fill="#fff">BARBER</text>
+</svg>

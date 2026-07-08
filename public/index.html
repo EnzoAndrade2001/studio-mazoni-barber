@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="theme-color" content="#111111">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Agenda">
+    <meta name="description" content="Studio Mazoni Barber: escolha seu barbeiro, servico e horario online.">
+    <meta property="og:title" content="Studio Mazoni Barber">
+    <meta property="og:description" content="Agendamento online com Deryck, Leo Mazoni e Gustavo.">
+    <meta property="og:type" content="website">
+    <title>Studio Mazoni Barber</title>
+    <link rel="icon" type="image/svg+xml" href="icon.svg?v=3">
+    <link rel="apple-touch-icon" href="icon.svg?v=3">
+    <link rel="manifest" href="manifest.webmanifest?v=6">
+    <link rel="stylesheet" href="styles.css?v=40">
+</head>
+<body class="site-body">
+    <header class="site-hero">
+        <section class="hero-content">
+            <p class="hero-kicker">Barbearia premium</p>
+            <img class="hero-logo" src="mazoni-logo.svg?v=2" alt="Studio Mazoni Barber">
+            <h1 class="sr-only">Studio Mazoni Barber</h1>
+            <p id="heroBookingText">Escolha seu barbeiro e reserve seu horario com Deryck, Leo Mazoni ou Gustavo.</p>
+            <a id="heroWhatsapp" class="primary-button hero-action" href="#agendamento">Agendar agora</a>
+        </section>
+    </header>
+
+    <main class="site-main">
+        <section class="availability-section premium-booking" id="agendamento">
+            <div class="section-head availability-head">
+                <div>
+                    <h2>Agendamento</h2>
+                    <p>Fluxo rapido para escolher servico, barbeiro, data, horario e confirmar.</p>
+                </div>
+            </div>
+            <div id="publicSetupNotice" class="setup-banner" hidden></div>
+            <ol class="booking-steps" aria-label="Etapas do agendamento">
+                <li class="active">Servico</li>
+                <li>Barbeiro</li>
+                <li>Horario</li>
+                <li>Confirmar</li>
+            </ol>
+            <form id="availabilityForm" class="premium-booking-grid">
+                <section class="booking-step-card">
+                    <span class="step-label">1. Servico</span>
+                    <h3>Escolha o que voce quer fazer</h3>
+                    <div id="servicePicker" class="service-picker" aria-live="polite"></div>
+                </section>
+                <section class="booking-step-card">
+                    <span class="step-label">2. Barbeiro</span>
+                    <h3>Escolha um profissional</h3>
+                    <select id="availabilityProfessional" class="sr-only" required></select>
+                    <div id="professionalPicker" class="professional-picker-public" aria-live="polite"></div>
+                </section>
+                <section class="booking-step-card schedule-step">
+                    <span class="step-label">3. Data e horario</span>
+                    <h3>Veja os horarios livres</h3>
+                    <label>
+                        Data
+                        <input id="availabilityDate" type="date" required>
+                    </label>
+                    <button class="secondary-button" type="submit">Atualizar horarios</button>
+                    <div class="availability-legend" aria-hidden="true">
+                        <span><i class="dot available"></i>Horarios disponiveis</span>
+                    </div>
+                    <div id="availabilityGrid" class="availability-grid" aria-live="polite"></div>
+                    <div id="waitlistForm" class="waitlist-panel" hidden>
+                        <strong>Quer entrar na lista de espera?</strong>
+                        <p>A recepcao pode chamar voce se abrir uma vaga nessa data.</p>
+                        <div class="waitlist-fields">
+                            <input id="waitlistName" type="text" maxlength="120" placeholder="Seu nome" autocomplete="name">
+                            <input id="waitlistPhone" type="tel" inputmode="tel" maxlength="15" placeholder="(51) 99999-9999" autocomplete="tel">
+                            <select id="waitlistPeriod" aria-label="Preferencia de horario">
+                                <option value="qualquer">Qualquer horario</option>
+                                <option value="manha">Manha</option>
+                                <option value="tarde">Tarde</option>
+                                <option value="depois das 18h">Depois das 18h</option>
+                                <option value="noite">Noite</option>
+                            </select>
+                        </div>
+                        <textarea id="waitlistNotes" rows="2" maxlength="500" placeholder="Preferencia de horario ou observacao"></textarea>
+                        <button id="waitlistSubmit" class="secondary-button" type="button">Entrar na lista de espera</button>
+                    </div>
+                </section>
+            </form>
+            <section id="bookingPanel" class="booking-panel" hidden>
+                <div class="section-head">
+                    <div>
+                        <h2>Confirmar agendamento</h2>
+                        <p id="bookingSummary">Escolha um horario livre.</p>
+                    </div>
+                </div>
+                <form id="bookingForm" class="booking-form">
+                    <label class="wide">
+                        Servico disponivel neste horario
+                        <select id="bookingService" required></select>
+                    </label>
+                    <label>
+                        Nome
+                        <input id="bookingName" type="text" maxlength="120" autocomplete="name" required>
+                        <span class="field-error" data-error-for="bookingName"></span>
+                    </label>
+                    <label>
+                        WhatsApp
+                        <input id="bookingPhone" type="tel" inputmode="tel" maxlength="15" autocomplete="tel" placeholder="(51) 99999-9999" required>
+                        <span class="field-error" data-error-for="bookingPhone"></span>
+                    </label>
+                    <label id="bookingEmailLabel">
+                        <span id="bookingEmailLabelText">Email para pagamento online</span>
+                        <input id="bookingEmail" type="email" maxlength="160" autocomplete="email" required>
+                        <span class="field-error" data-error-for="bookingEmail"></span>
+                    </label>
+                    <label id="bookingDocumentLabel">
+                        CPF para pagamento
+                        <input id="bookingDocument" type="text" inputmode="numeric" maxlength="18" autocomplete="off">
+                        <span class="field-error" data-error-for="bookingDocument"></span>
+                    </label>
+                    <label>
+                        Forma de pagamento
+                        <select id="bookingPaymentMethod" required>
+                            <option value="pix_online">Pix online</option>
+                            <option value="cartao_online">Cartao online</option>
+                            <option value="pix_manual">Pix manual na hora</option>
+                            <option value="dinheiro">Dinheiro na hora</option>
+                        </select>
+                    </label>
+                    <label>
+                        Pagamento
+                        <select id="bookingChargeType" required>
+                            <option value="total">Pagar total antes</option>
+                            <option value="pagar_na_hora">Pagar na hora</option>
+                        </select>
+                    </label>
+                    <label class="wide">
+                        Observacoes
+                        <textarea id="bookingNotes" rows="2" maxlength="1000" placeholder="Ex: corte habitual, maquina, barba ou preferencia"></textarea>
+                    </label>
+                    <div class="booking-actions wide">
+                        <button class="primary-button" type="submit">Gerar QR Pix</button>
+                        <button id="bookingWhatsapp" class="secondary-button" type="button">Continuar no WhatsApp</button>
+                    </div>
+                </form>
+                <p id="bookingSetupHint" class="setup-hint" hidden></p>
+                <div id="paymentResult" class="payment-result" hidden></div>
+            </section>
+        </section>
+
+        <section class="services-section" id="servicos">
+            <div class="section-head services-head">
+                <div>
+                    <h2>Servicos</h2>
+                    <p>Servicos principais usados hoje no atendimento da barbearia.</p>
+                </div>
+            </div>
+            <div id="publicServices" class="services-grid" aria-live="polite"></div>
+        </section>
+
+        <section class="local-note" aria-label="Localidade de atendimento">
+            <strong id="locationTitle">Rua Abelardo Marques 180</strong>
+            <span id="locationDescription">Santa Tereza, Rio Grande do Sul. Segunda 13:30-20:00, terca a sabado 09:00-20:00.</span>
+        </section>
+    </main>
+
+    <div class="mobile-cta">
+        <a id="bottomWhatsapp" class="primary-button" href="#servicos">Chamar no WhatsApp</a>
+    </div>
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+    <script src="pwa-mode.js?v=3"></script>
+    <script src="custom-select.js?v=1"></script>
+    <script src="servicos.js?v=30"></script>
+</body>
+</html>

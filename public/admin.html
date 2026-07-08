@@ -1,0 +1,535 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="theme-color" content="#f4f7f8">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Mazoni Admin">
+    <title>Admin | Studio Mazoni Barber</title>
+    <link rel="icon" type="image/svg+xml" href="icon.svg?v=4">
+    <link rel="apple-touch-icon" href="icon.svg?v=4">
+    <link rel="manifest" href="manifest-admin.webmanifest?v=6">
+    <link rel="stylesheet" href="styles.css?v=42">
+    <style>
+        [hidden],
+        #adminLogin[hidden] {
+            display: none !important;
+        }
+    </style>
+</head>
+<body class="admin-body">
+    <section id="adminLogin" class="admin-login" hidden style="display: none;">
+        <form id="adminLoginForm" class="login-panel">
+            <a class="brand-lockup" href="index.html" aria-label="Studio Mazoni Barber">
+                <span class="brand-mark">M</span>
+                <span class="brand-text">
+                    <span class="brand-name">Studio Mazoni Barber</span>
+                    <span class="brand-subtitle">Acesso administrativo</span>
+                </span>
+            </a>
+            <label id="adminUserLabel" hidden>
+                Usuario
+                <input id="adminUser" type="text" autocomplete="username">
+            </label>
+            <label>
+                Senha do painel
+                <input id="adminToken" type="password" autocomplete="current-password" required>
+            </label>
+            <button class="primary-button" type="submit">Entrar</button>
+        </form>
+    </section>
+    <header class="topbar">
+        <div class="topbar-actions">
+            <a class="ghost-button nav-admin" href="index.html" aria-label="Abrir site publico">Site</a>
+            <div class="notifications">
+                <button id="notificationButton" class="notification-button" type="button" aria-label="Lembretes de retorno" aria-expanded="false">
+                    <span class="bell-shape" aria-hidden="true"></span>
+                    <strong id="notificationCount">0</strong>
+                </button>
+                <div id="notificationPanel" class="notification-panel" hidden>
+                    <div class="notification-head">
+                        <strong>Retornos</strong>
+                        <span>agenda</span>
+                    </div>
+                    <div id="notificationList" class="notification-list"></div>
+                </div>
+            </div>
+        </div>
+        <a class="brand-lockup" href="admin.html" aria-label="Studio Mazoni Barber">
+            <span class="brand-mark">M</span>
+            <span class="brand-text">
+                <span class="brand-name">Studio Mazoni Barber</span>
+                <span class="brand-subtitle">Recepcao e agenda</span>
+            </span>
+        </a>
+        <div class="date-control">
+            <button class="icon-button" id="prevDay" type="button" title="Dia anterior" aria-label="Dia anterior">&lt;</button>
+            <input id="selectedDate" type="date" aria-label="Data da agenda">
+            <button class="icon-button" id="nextDay" type="button" title="Proximo dia" aria-label="Proximo dia">&gt;</button>
+        </div>
+    </header>
+
+    <nav class="mobile-tabs" aria-label="Atalhos do painel">
+        <a href="#inicio">Inicio</a>
+        <a href="#agenda">Agenda</a>
+        <a href="#novo-horario">Agendar</a>
+        <a href="#financeiro">Financeiro</a>
+        <a href="#produtos">Produtos</a>
+        <a href="#espera">Espera</a>
+        <a href="#retorno">Retorno</a>
+        <a href="#barbeiro">Barbeiros</a>
+    </nav>
+
+    <main class="layout">
+        <section class="panel admin-home" id="inicio">
+            <div class="section-head">
+                <div>
+                    <h2>Hoje no Studio</h2>
+                    <p id="homeDayLabel">Carregando o resumo do dia...</p>
+                </div>
+                <button id="homeRefreshButton" class="ghost-button" type="button">Atualizar</button>
+            </div>
+            <div id="homeMetrics" class="home-metrics" aria-live="polite">
+                <div><strong>0</strong><span>agendamentos</span></div>
+                <div><strong>R$ 0,00</strong><span>recebido</span></div>
+                <div><strong>0</strong><span>pendencias</span></div>
+                <div><strong>0</strong><span>alertas</span></div>
+            </div>
+            <div class="quick-actions" aria-label="Acoes rapidas">
+                <a class="primary-button" href="#novo-horario">Novo agendamento</a>
+                <button id="quickBlockButton" class="secondary-button" type="button">Bloquear horario</button>
+                <a class="secondary-button" href="#agenda">Ver agenda</a>
+            </div>
+            <div class="home-columns">
+                <section class="home-card">
+                    <div class="home-card-head">
+                        <strong>Proximos horarios</strong>
+                        <span id="nextCount">0</span>
+                    </div>
+                    <div id="nextAppointments" class="mini-agenda-list"></div>
+                </section>
+                <section class="home-card">
+                    <div class="home-card-head">
+                        <strong>Pendencias</strong>
+                        <span id="pendingCount">0</span>
+                    </div>
+                    <div id="pendingAppointments" class="mini-agenda-list"></div>
+                </section>
+            </div>
+        </section>
+
+        <section class="panel agenda-panel" id="agenda">
+            <div class="section-head">
+                <div>
+                    <h2>Agenda do dia</h2>
+                    <p id="dayLabel">Carregando...</p>
+                </div>
+                <button id="refreshButton" class="ghost-button" type="button">Atualizar</button>
+            </div>
+            <div class="summary-grid" id="summaryGrid">
+                <div><strong>0</strong><span>marcados</span></div>
+                <div><strong>0</strong><span>concluidos</span></div>
+                <div><strong>R$ 0,00</strong><span>recebido</span></div>
+                <div><strong>0</strong><span>cancelados</span></div>
+            </div>
+            <div id="setupChecklist" class="setup-checklist" hidden></div>
+            <div class="barber-agenda-hint">
+                <span>Agenda visual por barbeiro</span>
+                <strong>Toque em um card para agir: WhatsApp, pagamento, remarcar ou cancelar.</strong>
+            </div>
+            <div id="appointmentsList" class="barber-agenda-grid" aria-live="polite"></div>
+        </section>
+
+        <section class="panel finance-panel" id="financeiro">
+            <div class="section-head">
+                <div>
+                    <h2>Financeiro</h2>
+                    <p id="financePeriodLabel">Comissoes e faturamento do periodo selecionado.</p>
+                </div>
+                <button id="financeRefreshButton" class="ghost-button" type="button">Atualizar</button>
+            </div>
+            <div id="financeTotals" class="finance-totals" aria-live="polite">
+                <div><strong>R$ 0,00</strong><span>recebido</span></div>
+                <div><strong>R$ 0,00</strong><span>comissoes</span></div>
+                <div><strong>R$ 0,00</strong><span>dono</span></div>
+                <div><strong>0</strong><span>atendimentos</span></div>
+            </div>
+            <div id="commissionList" class="commission-list" aria-live="polite"></div>
+        </section>
+
+        <section class="panel inventory-panel" id="produtos">
+            <div class="section-head">
+                <div>
+                    <h2>Produtos e estoque</h2>
+                    <p>Entrada, saida, venda e alerta de estoque baixo.</p>
+                </div>
+                <button id="productRefreshButton" class="ghost-button" type="button">Atualizar</button>
+            </div>
+            <form id="productForm" class="form-grid inventory-form">
+                <label>
+                    Produto
+                    <input id="productName" type="text" maxlength="120" placeholder="Pomada, balm, shampoo..." required>
+                </label>
+                <label>
+                    Categoria
+                    <input id="productCategory" type="text" maxlength="60" value="Retail" required>
+                </label>
+                <label>
+                    Preco venda
+                    <input id="productSalePrice" type="number" inputmode="decimal" min="0" step="0.01" required>
+                </label>
+                <label>
+                    Custo
+                    <input id="productCost" type="number" inputmode="decimal" min="0" step="0.01" value="0">
+                </label>
+                <label>
+                    Estoque atual
+                    <input id="productStock" type="number" inputmode="numeric" min="0" step="1" value="0" required>
+                </label>
+                <label>
+                    Estoque minimo
+                    <input id="productMinStock" type="number" inputmode="numeric" min="0" step="1" value="0" required>
+                </label>
+                <label class="wide">
+                    Observacoes
+                    <textarea id="productNotes" rows="2" maxlength="1000" placeholder="Fornecedor, tamanho, fragrancia ou detalhe interno"></textarea>
+                </label>
+                <button class="secondary-button wide" type="submit">Salvar produto</button>
+            </form>
+            <div id="productAlerts" class="inventory-alerts" aria-live="polite"></div>
+            <div id="productList" class="inventory-list" aria-live="polite"></div>
+        </section>
+
+        <section class="panel waitlist-admin-panel" id="espera">
+            <div class="section-head">
+                <div>
+                    <h2>Lista de espera</h2>
+                    <p>Clientes aguardando vaga ou encaixe.</p>
+                </div>
+                <button id="waitlistRefreshButton" class="ghost-button" type="button">Atualizar</button>
+            </div>
+            <div id="waitlistAdminList" class="waitlist-admin-list" aria-live="polite"></div>
+        </section>
+
+        <section class="panel smart-return-panel" id="retorno">
+            <div class="section-head">
+                <div>
+                    <h2>Retorno inteligente</h2>
+                    <p>Clientes que estao no ponto de chamar de volta.</p>
+                </div>
+                <button id="smartReturnRefreshButton" class="ghost-button" type="button">Atualizar</button>
+            </div>
+            <div id="smartReturnList" class="smart-return-list" aria-live="polite"></div>
+        </section>
+
+        <aside class="side">
+            <section class="panel" id="novo-horario">
+                <div class="section-head">
+                    <div>
+                        <h2>Novo horario</h2>
+                        <p>Agendamento rapido para a recepcao.</p>
+                    </div>
+                </div>
+                <form id="appointmentForm" class="form-grid">
+                    <label>
+                        Cliente
+                        <select id="appointmentClient" required></select>
+                    </label>
+                    <label>
+                        Servico
+                        <select id="appointmentService" required></select>
+                    </label>
+                    <label>
+                        Barbeiro
+                        <select id="appointmentProfessional" required></select>
+                    </label>
+                    <label>
+                        Horario
+                        <select id="appointmentTime" required></select>
+                    </label>
+                    <label>
+                        Horario extra
+                        <input id="appointmentCustomTime" type="time" aria-label="Horario manual para encaixe">
+                    </label>
+                    <label>
+                        Cobranca
+                        <select id="appointmentChargeType" required>
+                            <option value="pagar_na_hora">Pagar na hora</option>
+                            <option value="total">Total antecipado</option>
+                        </select>
+                    </label>
+                    <label>
+                        Metodo
+                        <select id="appointmentPaymentMethod" required>
+                            <option value="pix_manual">Pix manual</option>
+                            <option value="dinheiro">Dinheiro</option>
+                            <option value="pix_online">Pix online</option>
+                            <option value="cartao_online">Cartao online</option>
+                        </select>
+                    </label>
+                    <label class="wide">
+                        Observacoes
+                        <textarea id="appointmentNotes" rows="3" maxlength="1000" placeholder="Ex: corte habitual, degradê baixo, barba ou preferência"></textarea>
+                    </label>
+                    <button class="primary-button wide" type="submit">Agendar</button>
+                </form>
+            </section>
+
+            <section class="panel compact-panel" id="cliente">
+                <h2>Cliente</h2>
+                <form id="clientForm" class="form-grid">
+                    <label>
+                        Nome
+                        <input id="clientName" type="text" maxlength="120" autocomplete="name" required>
+                    </label>
+                    <label>
+                        Telefone
+                        <input id="clientPhone" type="tel" inputmode="tel" maxlength="30" autocomplete="tel" required>
+                    </label>
+                    <label>
+                        Email
+                        <input id="clientEmail" type="email" maxlength="160" autocomplete="email">
+                    </label>
+                    <button class="secondary-button wide" type="submit">Salvar cliente</button>
+                </form>
+                <div id="clientList" class="client-list" aria-live="polite"></div>
+                <div id="clientProfile" class="client-profile" hidden></div>
+            </section>
+
+            <section class="panel compact-panel" id="servico">
+                <h2>Servico</h2>
+                <form id="serviceForm" class="form-grid">
+                    <label>
+                        Nome
+                        <input id="serviceName" type="text" maxlength="100" required>
+                    </label>
+                    <label>
+                        Categoria
+                        <input id="serviceCategory" type="text" maxlength="60" value="Barbearia">
+                    </label>
+                    <label>
+                        Duracao
+                        <select id="serviceDuration" required>
+                            <option value="30">30 min</option>
+                            <option value="45">45 min</option>
+                            <option value="60" selected>1h</option>
+                            <option value="75">1h15</option>
+                            <option value="90">1h30</option>
+                            <option value="105">1h45</option>
+                            <option value="120">2h</option>
+                            <option value="150">2h30</option>
+                            <option value="180">3h</option>
+                            <option value="210">3h30</option>
+                            <option value="240">4h</option>
+                        </select>
+                    </label>
+                    <label>
+                        Preco
+                        <input id="servicePrice" type="number" inputmode="decimal" min="0" step="0.01" required>
+                    </label>
+                    <label class="wide">
+                        Descricao
+                        <textarea id="serviceDescription" rows="2" maxlength="1000" placeholder="Resumo do servico para cliente e recepcao"></textarea>
+                    </label>
+                    <button class="secondary-button wide" type="submit">Salvar servico</button>
+                </form>
+                <div id="serviceList" class="service-admin-list" aria-live="polite"></div>
+            </section>
+
+            <section class="panel compact-panel" id="barbeiro">
+                <h2>Barbeiros</h2>
+                <form id="professionalForm" class="form-grid">
+                    <label>
+                        Nome
+                        <input id="professionalName" type="text" maxlength="120" required>
+                    </label>
+                    <label>
+                        Apelido
+                        <input id="professionalNickname" type="text" maxlength="80">
+                    </label>
+                    <label>
+                        Comissao %
+                        <input id="professionalCommission" type="number" inputmode="decimal" min="0" max="100" step="0.01" value="50" required>
+                    </label>
+                    <label>
+                        Ordem
+                        <input id="professionalOrder" type="number" inputmode="numeric" min="0" max="999" value="0">
+                    </label>
+                    <label class="checkbox-row">
+                        <input id="professionalOwner" type="checkbox">
+                        Dono
+                    </label>
+                    <label class="wide">
+                        Bio
+                        <textarea id="professionalBio" rows="2" maxlength="240" placeholder="Especialidade, estilo de corte ou observacao interna"></textarea>
+                    </label>
+                    <button class="secondary-button wide" type="submit">Salvar barbeiro</button>
+                </form>
+                <div id="professionalList" class="professional-admin-list" aria-live="polite"></div>
+            </section>
+
+            <section class="panel compact-panel" id="negocio">
+                <h2>Negocio</h2>
+                <form id="businessForm" class="form-grid">
+                    <label>
+                        Nome publico
+                        <input id="businessName" type="text" maxlength="120" required>
+                    </label>
+                    <label>
+                        Nome curto
+                        <input id="businessShortName" type="text" maxlength="40" required>
+                    </label>
+                    <label>
+                        Responsavel
+                        <input id="businessOwner" type="text" maxlength="80" required>
+                    </label>
+                    <label>
+                        Inicial do logo
+                        <input id="businessInitial" type="text" maxlength="2" required>
+                    </label>
+                    <label class="wide">
+                        Segmento
+                        <input id="businessSegment" type="text" maxlength="120" required>
+                    </label>
+                    <label class="wide">
+                        Subtitulo
+                        <input id="businessSubtitle" type="text" maxlength="240" required>
+                    </label>
+                    <label class="wide">
+                        Regiao
+                        <input id="businessRegion" type="text" maxlength="120" required>
+                    </label>
+                    <label class="wide">
+                        Texto dos horarios
+                        <textarea id="businessBookingText" rows="2" maxlength="240" required></textarea>
+                    </label>
+                    <label class="wide">
+                        Titulo do local
+                        <input id="businessLocationTitle" type="text" maxlength="160" required>
+                    </label>
+                    <label class="wide">
+                        Descricao do local
+                        <textarea id="businessLocationDescription" rows="2" maxlength="240" required></textarea>
+                    </label>
+                    <button class="secondary-button wide" type="submit">Salvar negocio</button>
+                </form>
+            </section>
+
+            <section class="panel compact-panel" id="repasse">
+                <h2>Repasse</h2>
+                <p id="transferDefaultHint" class="setup-hint">Destino padrao nao configurado.</p>
+                <form id="transferForm" class="form-grid">
+                    <label>
+                        Valor
+                        <input id="transferAmount" type="number" inputmode="decimal" min="0.01" step="0.01" required>
+                    </label>
+                    <label class="wide">
+                        Descricao
+                        <input id="transferDescription" type="text" maxlength="200" value="Repasse Studio Mazoni Barber">
+                    </label>
+                    <label class="wide">
+                        Confirmacao
+                        <input id="transferConfirmation" type="text" maxlength="20" placeholder="Digite REPASSAR" required>
+                    </label>
+                    <button class="danger-button wide" type="submit">Enviar repasse</button>
+                </form>
+                <div id="transferList" class="setup-checklist" hidden></div>
+            </section>
+        </aside>
+    </main>
+
+    <section id="editDialog" class="modal" hidden>
+        <form id="editForm" class="modal-panel">
+            <div class="section-head">
+                <div>
+                    <h2>Editar horario</h2>
+                    <p>Altere servico, data, hora ou observacoes.</p>
+                </div>
+                <button id="closeEdit" class="icon-button" type="button" aria-label="Fechar">x</button>
+            </div>
+            <input id="editAppointmentId" type="hidden">
+            <div class="form-grid">
+                <label>
+                    Cliente
+                    <select id="editClient" required></select>
+                </label>
+                <label>
+                    Servico
+                    <select id="editService" required></select>
+                </label>
+                <label>
+                    Barbeiro
+                    <select id="editProfessional" required></select>
+                </label>
+                <label>
+                    Data
+                    <input id="editDate" type="date" required>
+                </label>
+                <label>
+                    Hora
+                    <input id="editTime" type="time" required>
+                </label>
+                    <label>
+                        Cobranca
+                        <select id="editChargeType" required>
+                            <option value="pagar_na_hora">Pagar na hora</option>
+                            <option value="total">Total antecipado</option>
+                        </select>
+                </label>
+                <label>
+                    Metodo
+                    <select id="editPaymentMethod" required>
+                        <option value="pix_manual">Pix manual</option>
+                        <option value="dinheiro">Dinheiro</option>
+                        <option value="pix_online">Pix online</option>
+                        <option value="cartao_online">Cartao online</option>
+                    </select>
+                </label>
+                <label class="wide">
+                    Observacoes
+                    <textarea id="editNotes" rows="3" maxlength="1000"></textarea>
+                </label>
+                <label>
+                    Lembrar retorno em
+                    <input id="editReminderDate" type="date">
+                </label>
+                <label>
+                    Dias apos atendimento
+                    <input id="editReminderDays" type="number" inputmode="numeric" min="1" max="365" placeholder="Ex: 20">
+                </label>
+                <label class="wide">
+                    Observacao do lembrete
+                    <textarea id="editReminderNotes" rows="2" maxlength="300" placeholder="Ex: chamar cliente para manutencao"></textarea>
+                </label>
+                <label class="checkbox-row wide">
+                    <input id="editReminderDone" type="checkbox">
+                    Lembrete ja resolvido
+                </label>
+                <button class="primary-button wide" type="submit">Salvar alteracoes</button>
+            </div>
+        </form>
+    </section>
+
+    <section id="confirmDialog" class="modal" hidden>
+        <div class="modal-panel confirm-panel" role="dialog" aria-modal="true" aria-labelledby="confirmTitle">
+            <div>
+                <span id="confirmKicker" class="confirm-kicker">Confirmacao</span>
+                <h2 id="confirmTitle">Confirmar acao</h2>
+                <p id="confirmMessage">Tem certeza?</p>
+            </div>
+            <div class="confirm-actions">
+                <button id="confirmCancel" class="secondary-button" type="button">Voltar</button>
+                <button id="confirmAccept" class="primary-button" type="button">Confirmar</button>
+            </div>
+        </div>
+    </section>
+
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+    <script src="pwa-mode.js?v=3"></script>
+    <script src="custom-select.js?v=1"></script>
+    <script src="app.js?v=37"></script>
+</body>
+</html>

@@ -1,0 +1,19 @@
+{
+  "name": "Studio Mazoni Barber",
+  "short_name": "Mazoni",
+  "description": "Agendamento online do Studio Mazoni Barber.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#101010",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

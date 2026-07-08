@@ -1,0 +1,40 @@
+{
+    "name": "Studio Mazoni Barber",
+    "short_name": "Mazoni",
+    "start_url": "/",
+    "scope": "/",
+    "display": "standalone",
+    "orientation": "portrait",
+    "background_color": "#111111",
+    "theme_color": "#111111",
+    "description": "Agendamento online do Studio Mazoni Barber.",
+    "categories": ["beauty", "business", "lifestyle"],
+    "icons": [
+        {
+            "src": "/icon.svg?v=4",
+            "sizes": "any",
+            "type": "image/svg+xml",
+            "purpose": "any maskable"
+        }
+    ],
+    "shortcuts": [
+        {
+            "name": "Horarios",
+            "short_name": "Horarios",
+            "url": "/#horarios",
+            "description": "Ver horarios disponiveis"
+        },
+        {
+            "name": "Servicos",
+            "short_name": "Servicos",
+            "url": "/#servicos",
+            "description": "Ver servicos e valores"
+        },
+        {
+            "name": "Painel admin",
+            "short_name": "Admin",
+            "url": "/painel-admin",
+            "description": "Abrir painel da recepcao"
+        }
+    ]
+}

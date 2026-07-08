@@ -1,0 +1,29 @@
+{
+  "name": "studio-mazoni-barber",
+  "version": "1.0.0",
+  "description": "Sistema de agendamento online para o Studio Mazoni Barber.",
+  "main": "index.js",
+  "engines": {
+    "node": ">=22 <25"
+  },
+  "scripts": {
+    "start": "node index.js",
+    "dev": "node --watch index.js",
+    "frontend:dev": "npm --prefix frontend run dev",
+    "frontend:build": "npm --prefix frontend run build",
+    "preview:front": "node scripts/preview-static.js",
+    "pages:build": "node scripts/build-pages-demo.js",
+    "hash:admin": "node scripts/hash-admin-password.js",
+    "migrate": "node -e \"require('./src/config/migrations').executarMigracoes().then(() => process.exit()).catch(e => { console.error(e); process.exit(1); })\"",
+    "test": "node --test"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "pg": "^8.21.0"
+  }
+}

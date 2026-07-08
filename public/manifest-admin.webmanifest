@@ -1,0 +1,40 @@
+{
+    "name": "Studio Mazoni Admin",
+    "short_name": "Mazoni Admin",
+    "start_url": "/painel-admin",
+    "scope": "/",
+    "display": "standalone",
+    "orientation": "portrait",
+    "background_color": "#111111",
+    "theme_color": "#111111",
+    "description": "Painel da recepcao do Studio Mazoni Barber.",
+    "categories": ["business", "productivity"],
+    "icons": [
+        {
+            "src": "/icon.svg?v=4",
+            "sizes": "any",
+            "type": "image/svg+xml",
+            "purpose": "any maskable"
+        }
+    ],
+    "shortcuts": [
+        {
+            "name": "Agenda do dia",
+            "short_name": "Agenda",
+            "url": "/painel-admin#agenda",
+            "description": "Abrir agenda do dia"
+        },
+        {
+            "name": "Novo horario",
+            "short_name": "Agendar",
+            "url": "/painel-admin#novo-horario",
+            "description": "Criar novo horario"
+        },
+        {
+            "name": "Repasses",
+            "short_name": "Repasse",
+            "url": "/painel-admin#repasse",
+            "description": "Abrir area de repasse"
+        }
+    ]
+}

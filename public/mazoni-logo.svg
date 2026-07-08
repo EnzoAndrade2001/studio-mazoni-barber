@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 980 330" role="img" aria-labelledby="title desc">
+  <title id="title">Studio Mazoni Barber</title>
+  <desc id="desc">Marca Studio Mazoni Barber em branco com detalhe de navalha.</desc>
+  <g fill="#fff">
+    <path d="M58 74h392v24H58z"/>
+    <text x="55" y="205" font-family="Arial Black, Impact, Arial, sans-serif" font-size="128" font-weight="900" letter-spacing="-6">MAZONI</text>
+    <path d="M277 221h284v18H277z"/>
+    <text x="230" y="296" font-family="Arial Black, Impact, Arial, sans-serif" font-size="66" font-weight="900" letter-spacing="22">BARBER</text>
+  </g>
+  <g fill="#fff" transform="translate(608 50) rotate(7)">
+    <path d="M0 32c8-17 29-25 52-22l228 32c20 3 32 13 29 24-2 12-18 18-38 15L42 49C18 46 4 40 0 32z"/>
+    <path fill="#111" d="M52 26h138c11 0 17 4 16 9-1 5-9 8-20 8H48c-10 0-16-3-15-8 1-5 9-9 19-9z"/>
+    <path d="M304 28c15-2 27 8 30 21 3 15-7 28-22 31l-48 10-6-29 40-8c6-1 9-6 8-11z"/>
+    <circle cx="341" cy="60" r="18"/>
+    <path d="M349 73c38 22 62 53 57 83-2 11-10 19-20 18-36-4-70-32-95-76z"/>
+  </g>
+</svg>
