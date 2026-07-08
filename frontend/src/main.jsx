@@ -1140,6 +1140,7 @@ function AgendaBoard({ professionals, demo }) {
   const [pending, setPending] = useState([]);
   const [loading, setLoading] = useState(false);
   const [notice, setNotice] = useState("");
+  const [whatsappStatus, setWhatsappStatus] = useState({});
 
   async function loadAppointments() {
     setLoading(true);
@@ -1175,10 +1176,47 @@ function AgendaBoard({ professionals, demo }) {
 
   async function decide(appointment, action) {
     try {
-      if (!demo) await apiRequest(`/api/agendamentos/${appointment.id}/${action}`, { method: "POST" });
+      if (!demo) {
+        const result = await apiRequest(`/api/agendamentos/${appointment.id}/${action}`, { method: "POST" });
+        if (result?._whatsapp) {
+          if (result._whatsapp.enviado) {
+            setWhatsappStatus((prev) => ({ ...prev, [appointment.id]: "enviado" }));
+          } else if (result._whatsapp.url) {
+            setWhatsappStatus((prev) => ({ ...prev, [appointment.id]: "link_gerado" }));
+            window.open(result._whatsapp.url, "_blank", "noopener,noreferrer");
+          }
+        }
+      }
       setNotice(action === "aprovar" ? "Horario aprovado." : "Horario recusado.");
       await loadAppointments();
     } catch (error) {
+      setNotice(error.message);
+    }
+  }
+
+  async function reenviarWhatsapp(appointment, tipo = "confirmacao") {
+    setWhatsappStatus((prev) => ({ ...prev, [appointment.id]: "enviando" }));
+    try {
+      if (demo) {
+        setWhatsappStatus((prev) => ({ ...prev, [appointment.id]: "enviado" }));
+        setNotice("Reenvio de WhatsApp simulado.");
+        window.open(`https://wa.me/5551989849691?text=Ola%2C%20confirmamos%20seu%20horario`, "_blank");
+        return;
+      }
+      const result = await apiRequest(`/api/agendamentos/${appointment.id}/whatsapp`, {
+        method: "POST",
+        body: { tipo }
+      });
+      if (result.enviado) {
+        setWhatsappStatus((prev) => ({ ...prev, [appointment.id]: "enviado" }));
+        setNotice("WhatsApp enviado com sucesso!");
+      } else if (result.url) {
+        setWhatsappStatus((prev) => ({ ...prev, [appointment.id]: "link_gerado" }));
+        setNotice("Redirecionando para o WhatsApp Web...");
+        window.open(result.url, "_blank", "noopener,noreferrer");
+      }
+    } catch (error) {
+      setWhatsappStatus((prev) => ({ ...prev, [appointment.id]: "erro" }));
       setNotice(error.message);
     }
   }
@@ -1211,9 +1249,13 @@ function AgendaBoard({ professionals, demo }) {
                   <strong>{appointment.cliente_nome}</strong>
                   <span>{appointment.servico_nome} - {appointment.profissional_nome || appointment.profissional_apelido || "Barbeiro"}</span>
                 </div>
-                <div className="pending-actions">
-                  <button type="button" className="primary compact" onClick={() => decide(appointment, "aprovar")}>Aprovar</button>
-                  <button type="button" className="ghost-button compact" onClick={() => decide(appointment, "recusar")}>Recusar</button>
+                <div className="pending-actions" style={{ display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'flex-end' }}>
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <button type="button" className="primary compact" onClick={() => decide(appointment, "aprovar")}>Aprovar</button>
+                    <button type="button" className="ghost-button compact" onClick={() => decide(appointment, "recusar")}>Recusar</button>
+                  </div>
+                  {whatsappStatus[appointment.id] === "enviado" && <span style={{ fontSize: "11px", color: "#4caf81", fontWeight: "bold" }}>✓ WhatsApp Enviado</span>}
+                  {whatsappStatus[appointment.id] === "link_gerado" && <span style={{ fontSize: "11px", color: "#8c6a2e", fontWeight: "bold" }}>⚠ Link gerado (wa.me)</span>}
                 </div>
               </article>
             ))}
@@ -1240,11 +1282,30 @@ function AgendaBoard({ professionals, demo }) {
                   <strong>{appointment.cliente_nome}</strong>
                   <span>{appointment.servico_nome}</span>
                   <small>{appointment.status} - {appointment.pagamento_status || "pendente"}</small>
-                  {appointment.aprovacao_pendente && (
-                    <div className="inline-actions">
+                  {appointment.aprovacao_pendente ? (
+                    <div className="inline-actions" style={{ marginTop: '8px' }}>
                       <button type="button" className="primary compact" onClick={() => decide(appointment, "aprovar")}>Aprovar</button>
                       <button type="button" className="ghost-button compact" onClick={() => decide(appointment, "recusar")}>Recusar</button>
                     </div>
+                  ) : (
+                    appointment.status !== 'cancelado' && (
+                      <div className="inline-actions" style={{ marginTop: '8px', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column' }}>
+                          {whatsappStatus[appointment.id] === "enviado" && <span style={{ fontSize: "10px", color: "#4caf81", fontWeight: "bold" }}>✓ WhatsApp Enviado</span>}
+                          {whatsappStatus[appointment.id] === "link_gerado" && <span style={{ fontSize: "10px", color: "#8c6a2e", fontWeight: "bold" }}>⚠ Link wa.me</span>}
+                          {whatsappStatus[appointment.id] === "enviando" && <span style={{ fontSize: "10px", color: "#888" }}>Enviando...</span>}
+                        </div>
+                        <button
+                          type="button"
+                          className="ghost-button compact"
+                          style={{ width: 'auto', minHeight: '28px', padding: '0 8px', fontSize: '11px', margin: 0 }}
+                          onClick={() => reenviarWhatsapp(appointment, "confirmacao")}
+                          disabled={whatsappStatus[appointment.id] === "enviando"}
+                        >
+                          {whatsappStatus[appointment.id] === "enviado" ? "Reenviar WhatsApp" : "Enviar WhatsApp"}
+                        </button>
+                      </div>
+                    )
                   )}
                 </article>
               )) : (
