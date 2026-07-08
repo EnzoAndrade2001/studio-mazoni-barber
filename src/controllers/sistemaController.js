@@ -196,6 +196,7 @@ async function horariosDisponiveis(req, res) {
                   SELECT 1 FROM bloqueios b
                   WHERE b.inicio < slots.inicio + make_interval(mins => s.duracao_minutos)
                     AND b.fim > slots.inicio
+                    AND (b.profissional_id IS NULL OR b.profissional_id = $2)
               )
         ) svc ON TRUE
         GROUP BY slots.inicio

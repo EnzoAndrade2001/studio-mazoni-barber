@@ -184,6 +184,7 @@ function App() {
   const [status, setStatus] = useState("idle");
   const [businessHours, setBusinessHours] = useState(demoBusinessHours);
   const [bookingStatus, setBookingStatus] = useState("");
+  const [bookingRules, setBookingRules] = useState(null);
 
   useEffect(() => {
     loadInitialData().then((loaded) => {
@@ -195,9 +196,15 @@ function App() {
 
   useEffect(() => {
     if (data.demo) return;
-    api("/api/horarios-funcionamento")
-      .then(setBusinessHours)
-      .catch(() => setBusinessHours(demoBusinessHours));
+    Promise.all([
+      api("/api/horarios-funcionamento"),
+      api("/api/regras-agendamento")
+    ]).then(([hours, rules]) => {
+      setBusinessHours(hours);
+      setBookingRules(rules);
+    }).catch(() => {
+      setBusinessHours(demoBusinessHours);
+    });
   }, [data.demo]);
 
   useEffect(() => {
@@ -274,6 +281,8 @@ function App() {
           setData={setData}
           businessHours={businessHours}
           setBusinessHours={setBusinessHours}
+          bookingRules={bookingRules}
+          setBookingRules={setBookingRules}
         />
       )}
     </main>
@@ -709,7 +718,7 @@ function AdminPreview({ professionals }) {
   );
 }
 
-function AdminPanel({ data, setData, businessHours, setBusinessHours }) {
+function AdminPanel({ data, setData, businessHours, setBusinessHours, bookingRules, setBookingRules }) {
   const { professionals, services, demo } = data;
   const [tab, setTab] = useState("agenda");
   const [notice, setNotice] = useState("");
@@ -807,9 +816,10 @@ function AdminPanel({ data, setData, businessHours, setBusinessHours }) {
       <div className="admin-tabs" aria-label="Areas do painel">
         {[
           ["agenda", "Agenda"],
+          ["espera", "Espera"],
           ["clientes", "Clientes"],
           ["barbeiros", "Barbeiros"],
-          ["jornada", "Horarios"],
+          ["jornada", "Configuracoes"],
           ["servicos", "Servicos"],
           ["relatorios", "Relatorios"],
           ["comissoes", "Comissoes"],
@@ -825,6 +835,7 @@ function AdminPanel({ data, setData, businessHours, setBusinessHours }) {
         <div><strong>{professionals.length}</strong><span>barbeiros</span></div>
       </div>
       {tab === "agenda" && <AgendaBoard professionals={professionals} demo={demo} />}
+      {tab === "espera" && <WaitlistPanel demo={demo} />}
       {tab === "clientes" && <ClientsPanel demo={demo} />}
       {tab === "barbeiros" && (
         <AdminPanelGrid>
@@ -860,22 +871,25 @@ function AdminPanel({ data, setData, businessHours, setBusinessHours }) {
         </AdminPanelGrid>
       )}
       {tab === "jornada" && (
-        <div className="hours-grid">
-          {businessHours.map((day) => (
-            <form key={day.dia_semana} className="hour-card" onSubmit={(event) => saveHour(event, day)}>
-              <div>
-                <strong>{day.nome || weekdayName(day.dia_semana)}</strong>
-                <label className="switch-line">
-                  <input name="aberto" type="checkbox" defaultChecked={day.aberto} />
-                  Aberto
-                </label>
-              </div>
-              <input name="abertura" type="time" defaultValue={String(day.abertura).slice(0, 5)} />
-              <input name="fechamento" type="time" defaultValue={String(day.fechamento).slice(0, 5)} />
-              <button className="ghost-button compact" type="submit">Salvar</button>
-            </form>
-          ))}
-        </div>
+        <AdminPanelGrid>
+          <div className="hours-grid">
+            {businessHours.map((day) => (
+              <form key={day.dia_semana} className="hour-card" onSubmit={(event) => saveHour(event, day)}>
+                <div>
+                  <strong>{day.nome || weekdayName(day.dia_semana)}</strong>
+                  <label className="switch-line">
+                    <input name="aberto" type="checkbox" defaultChecked={day.aberto} />
+                    Aberto
+                  </label>
+                </div>
+                <input name="abertura" type="time" defaultValue={String(day.abertura).slice(0, 5)} />
+                <input name="fechamento" type="time" defaultValue={String(day.fechamento).slice(0, 5)} />
+                <button className="ghost-button compact" type="submit">Salvar</button>
+              </form>
+            ))}
+          </div>
+          <RulesConfig rules={bookingRules} setRules={setBookingRules} demo={demo} setNotice={setNotice} />
+        </AdminPanelGrid>
       )}
       {tab === "servicos" && (
         <AdminPanelGrid>
@@ -983,6 +997,37 @@ function ClientsPanel({ demo }) {
         {selected && (
           <section className="client-history">
             <h3>{selected.nome}</h3>
+            {(() => {
+              const score = selected.score_confianca || (demo ? {
+                pontos: selected.nome === "Rafael" ? 95 : 40,
+                classificacao: selected.nome === "Rafael" ? "vip" : "risco_de_falta",
+                acao_recomendada: selected.nome === "Rafael" ? "Prioridade para encaixe e retorno." : "Pedir confirmacao manual ou pagamento antecipado."
+              } : null);
+              if (!score) return null;
+              
+              const isVip = score.classificacao === "vip";
+              const isRisco = score.classificacao === "risco_de_falta" || score.classificacao === "bloqueado_online";
+              
+              const style = {
+                margin: "8px 0 12px",
+                padding: "10px 12px",
+                borderRadius: "8px",
+                fontSize: "12px",
+                fontWeight: "bold",
+                background: isVip ? "#e8f5e9" : isRisco ? "#ffebee" : "#f7f4ee",
+                color: isVip ? "#2e7d32" : isRisco ? "#c62828" : "#555",
+                border: "1px solid currentColor"
+              };
+              
+              return (
+                <div style={style}>
+                  Classificacao: {score.classificacao.replace("_", " ").toUpperCase()} · Pontuacao: {score.pontos}/100
+                  <div style={{ fontWeight: "normal", fontSize: "11px", marginTop: "4px", opacity: 0.9 }}>
+                    Acao recomendada: {score.acao_recomendada}
+                  </div>
+                </div>
+              );
+            })()}
             <div className="history-stats">
               <span>{selected.estatisticas?.total_agendamentos || 0} agendamentos</span>
               <span>{selected.estatisticas?.atendimentos_concluidos || 0} concluidos</span>
@@ -1350,6 +1395,227 @@ function AgendaBoard({ professionals, demo }) {
         })}
       </div>
     </div>
+  );
+}
+
+function WaitlistPanel({ demo }) {
+  const [items, setItems] = useState([]);
+  const [intelligentItems, setIntelligentItems] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [notice, setNotice] = useState("");
+
+  async function loadWaitlist() {
+    setLoading(true);
+    setNotice("");
+    try {
+      if (demo) throw new Error("demo");
+      const [geral, intel] = await Promise.all([
+        apiRequest("/api/lista-espera"),
+        apiRequest("/api/lista-espera/inteligente")
+      ]);
+      setItems(geral);
+      setIntelligentItems(intel);
+    } catch {
+      setItems([
+        { id: 1, nome: "Carlos Eduardo", telefone: "51988887777", servico_nome: "Corte degrade", profissional_nome: "Deryck", data_preferida: today(), periodo: "tarde", status: "aguardando" },
+        { id: 2, nome: "Guilherme Santos", telefone: "51977776666", servico_nome: "Corte e Barba", profissional_nome: "Leo", data_preferida: today(), periodo: "noite", status: "aguardando" }
+      ]);
+      setIntelligentItems([
+        { id: 1, nome: "Carlos Eduardo", telefone: "51988887777", servico_nome: "Corte degrade", profissional_nome: "Deryck", data_preferida: today(), periodo: "tarde", status: "aguardando", vaga_disponivel: true, horario_vaga: "14:00" }
+      ]);
+      setNotice("Demo de lista de espera conectada a dados simulados.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    loadWaitlist();
+  }, []);
+
+  async function changeStatus(id, newStatus) {
+    try {
+      if (!demo) {
+        await apiRequest(`/api/lista-espera/${id}`, {
+          method: "PATCH",
+          body: { status: newStatus }
+        });
+      }
+      setNotice(`Status atualizado para ${newStatus}.`);
+      await loadWaitlist();
+    } catch (error) {
+      setNotice(error.message);
+    }
+  }
+
+  return (
+    <div className="waitlist-panel" style={{ display: 'grid', gap: '16px' }}>
+      {notice && <div className="admin-notice">{notice}</div>}
+      
+      <section className="pending-strip" style={{ background: '#f0f9eb', borderColor: '#e1f3d8' }}>
+        <h3 style={{ color: '#67c23a' }}>💡 Encaixes Inteligentes</h3>
+        <p style={{ fontSize: '13px', color: '#606266', marginBottom: '10px' }}>
+          Clientes na fila com barbeiro e serviço correspondentes a horários vagos recém-liberados na agenda:
+        </p>
+        <div className="pending-list">
+          {intelligentItems.length ? intelligentItems.map((item) => (
+            <article key={item.id} className="pending-card" style={{ borderColor: '#e1f3d8' }}>
+              <div>
+                <strong>{item.nome}</strong>
+                <span>{item.servico_nome} com {item.profissional_nome || "Qualquer Barbeiro"}</span>
+                <small>Preferencia: {item.data_preferida} ({item.periodo}) · Sugestão às {item.horario_vaga || "Horario livre"}</small>
+              </div>
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                <a 
+                  href={`https://wa.me/${String(item.telefone).replace(/\D/g, "")}`} 
+                  target="_blank" 
+                  rel="noreferrer" 
+                  className="btn btn-primary compact" 
+                  style={{ background: '#67c23a', color: '#fff', fontSize: '12px', minHeight: '32px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', textDecoration: 'none' }}
+                >
+                  WhatsApp
+                </a>
+                <button type="button" className="ghost-button compact" style={{ fontSize: '12px', minHeight: '32px' }} onClick={() => changeStatus(item.id, "convertido")}>Reservar</button>
+              </div>
+            </article>
+          )) : <div className="empty-column">Nenhum encaixe inteligente sugerido no momento.</div>}
+        </div>
+      </section>
+
+      <AdminPanelGrid>
+        <div className="admin-list" style={{ gridColumn: 'span 2' }}>
+          <h3>Aguardando na Fila</h3>
+          {items.map((item) => (
+            <article key={item.id} className="admin-row" style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '16px', padding: '16px' }}>
+              <div>
+                <strong>{item.nome}</strong>
+                <span style={{ fontSize: '13px', color: '#666' }}>WhatsApp: {item.telefone} · Preferência: {item.data_preferida} ({item.periodo})</span>
+                <span style={{ fontSize: '13px', color: '#666' }}>Barbeiro: {item.profissional_nome || "Qualquer Barbeiro"} · Serviço: {item.servico_nome || "Qualquer"}</span>
+                <small style={{ display: 'inline-block', marginTop: '4px', textTransform: 'uppercase', fontSize: '10px', fontWeight: 'bold', background: '#eee', padding: '2px 6px', borderRadius: '4px' }}>
+                  {item.status}
+                </small>
+              </div>
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                <button type="button" className="ghost-button compact" onClick={() => changeStatus(item.id, "avisado")}>Avisar</button>
+                <button type="button" className="ghost-button compact" onClick={() => changeStatus(item.id, "convertido")}>Reservar</button>
+                <button type="button" className="ghost-button compact" style={{ color: '#e05555' }} onClick={() => changeStatus(item.id, "cancelado")}>Desistir</button>
+              </div>
+            </article>
+          ))}
+          {!items.length && <div className="empty-column">Nenhum cliente na lista de espera.</div>}
+        </div>
+      </AdminPanelGrid>
+    </div>
+  );
+}
+
+function RulesConfig({ rules, setRules, demo, setNotice }) {
+  const [formData, setFormData] = useState({
+    antecedencia_cancelamento_horas: 2,
+    antecedencia_reagendamento_horas: 2,
+    no_show_limite: 2,
+    no_show_bloqueio_dias: 30,
+    sinal_habilitado: false,
+    sinal_percentual: 0,
+  });
+
+  useEffect(() => {
+    if (rules) {
+      setFormData(rules);
+    }
+  }, [rules]);
+
+  async function handleSubmit(event) {
+    event.preventDefault();
+    try {
+      if (demo) {
+        setNotice("Configuracoes salvas na demo simulada.");
+        return;
+      }
+      const updated = await apiRequest("/api/regras-agendamento", {
+        method: "PATCH",
+        body: {
+          antecedencia_cancelamento_horas: Number(formData.antecedencia_cancelamento_horas),
+          antecedencia_reagendamento_horas: Number(formData.antecedencia_reagendamento_horas),
+          no_show_limite: Number(formData.no_show_limite),
+          no_show_bloqueio_dias: Number(formData.no_show_bloqueio_dias),
+          sinal_habilitado: Boolean(formData.sinal_habilitado),
+          sinal_percentual: Number(formData.sinal_percentual),
+        }
+      });
+      setRules(updated);
+      setNotice("Regras de agendamento salvas com sucesso.");
+    } catch (error) {
+      setNotice(error.message);
+    }
+  }
+
+  return (
+    <form className="admin-form" onSubmit={handleSubmit} style={{ height: 'fit-content' }}>
+      <h3>Configuração de Regras</h3>
+      <label>
+        Antecedência Cancelamento (horas)
+        <input
+          type="number"
+          min="0"
+          max="168"
+          value={formData.antecedencia_cancelamento_horas}
+          onChange={(e) => setFormData({ ...formData, antecedencia_cancelamento_horas: e.target.value })}
+        />
+      </label>
+      <label>
+        Antecedência Reagendamento (horas)
+        <input
+          type="number"
+          min="0"
+          max="168"
+          value={formData.antecedencia_reagendamento_horas}
+          onChange={(e) => setFormData({ ...formData, antecedencia_reagendamento_horas: e.target.value })}
+        />
+      </label>
+      <label>
+        Limite de No-Show
+        <input
+          type="number"
+          min="0"
+          max="20"
+          value={formData.no_show_limite}
+          onChange={(e) => setFormData({ ...formData, no_show_limite: e.target.value })}
+        />
+      </label>
+      <label>
+        Bloqueio de No-Show (dias)
+        <input
+          type="number"
+          min="0"
+          max="365"
+          value={formData.no_show_bloqueio_dias}
+          onChange={(e) => setFormData({ ...formData, no_show_bloqueio_dias: e.target.value })}
+        />
+      </label>
+      <label className="switch-line">
+        <input
+          type="checkbox"
+          checked={formData.sinal_habilitado}
+          onChange={(e) => setFormData({ ...formData, sinal_habilitado: e.target.checked })}
+        />
+        Cobrar Sinal Antecipado
+      </label>
+      {formData.sinal_habilitado && (
+        <label>
+          Percentual do Sinal
+          <select
+            value={formData.sinal_percentual}
+            onChange={(e) => setFormData({ ...formData, sinal_percentual: Number(e.target.value) })}
+          >
+            <option value={0}>0%</option>
+            <option value={30}>30%</option>
+            <option value={50}>50%</option>
+          </select>
+        </label>
+      )}
+      <button className="primary" type="submit">Salvar Regras</button>
+    </form>
   );
 }
 

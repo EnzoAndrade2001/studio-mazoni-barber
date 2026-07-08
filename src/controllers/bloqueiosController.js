@@ -5,7 +5,8 @@ const validacao = require('../utils/validation');
 async function listar(req, res) {
     res.json(await bloqueios.listar(
         req.query.inicio ? validacao.data(req.query.inicio, 'inicio') : null,
-        req.query.fim ? validacao.data(req.query.fim, 'fim') : null
+        req.query.fim ? validacao.data(req.query.fim, 'fim') : null,
+        req.query.profissional_id ? validacao.id(req.query.profissional_id, 'profissional_id') : null
     ));
 }
 
@@ -14,6 +15,7 @@ async function criar(req, res) {
     const fim = validacao.data(req.body.fim, 'fim');
     if (fim <= inicio) throw new HttpError(400, 'O fim deve ser posterior ao inicio.');
     res.status(201).json(await bloqueios.criar({
+        profissional_id: req.body.profissional_id ? validacao.id(req.body.profissional_id, 'profissional_id') : null,
         inicio,
         fim,
         motivo: validacao.texto(req.body.motivo, 'motivo', { obrigatorio: false, max: 200 })

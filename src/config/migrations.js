@@ -198,6 +198,7 @@ CREATE INDEX IF NOT EXISTS lista_espera_telefone_idx ON lista_espera (telefone);
 
 CREATE TABLE IF NOT EXISTS bloqueios (
     id BIGSERIAL PRIMARY KEY,
+    profissional_id BIGINT REFERENCES profissionais(id),
     inicio TIMESTAMPTZ NOT NULL,
     fim TIMESTAMPTZ NOT NULL,
     motivo VARCHAR(200),
@@ -205,6 +206,8 @@ CREATE TABLE IF NOT EXISTS bloqueios (
     CHECK (fim > inicio)
 );
 
+ALTER TABLE bloqueios ADD COLUMN IF NOT EXISTS profissional_id BIGINT REFERENCES profissionais(id);
+CREATE INDEX IF NOT EXISTS bloqueios_profissional_idx ON bloqueios (profissional_id) WHERE profissional_id IS NOT NULL;
 CREATE INDEX IF NOT EXISTS bloqueios_inicio_idx ON bloqueios (inicio);
 
 CREATE TABLE IF NOT EXISTS configuracoes (
