@@ -8,7 +8,8 @@ html {
 
 body {
   margin: 0;
-  background: #fff;
+  background: linear-gradient(135deg, #ffffff 0%, #eaeaea 40%, #1c1c1c 80%, #111111 100%);
+  background-attachment: fixed;
   color: #111;
   font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
@@ -108,10 +109,70 @@ button {
   position: relative;
   min-height: 100svh;
   overflow: hidden;
-  background: rgba(255, 255, 255, .92);
+  background: transparent;
   color: #111;
   padding: 22px clamp(16px, 5vw, 64px) 54px;
 }
+
+/* Animação de Tesouras Horizontais */
+.scissors-flow-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: -2;
+  pointer-events: none;
+  overflow: hidden;
+  opacity: 0.09;
+}
+
+.scissors-row {
+  display: flex;
+  white-space: nowrap;
+  width: 200%;
+  animation: move-horizontal 45s linear infinite;
+  align-items: center;
+}
+
+.scissors-row.reverse {
+  animation: move-horizontal-reverse 55s linear infinite;
+}
+
+.scissors-row:nth-child(even) {
+  animation-duration: 65s;
+}
+
+.scissors-row:nth-child(3n) {
+  animation-duration: 80s;
+}
+
+@keyframes move-horizontal {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+@keyframes move-horizontal-reverse {
+  0% {
+    transform: translateX(-50%);
+  }
+  100% {
+    transform: translateX(0);
+  }
+}
+
+.scissors-icon-svg {
+  width: 26px;
+  height: 26px;
+  margin: 30px 45px;
+  color: #555;
+  flex-shrink: 0;
+}
+
 
 .nav {
   position: relative;

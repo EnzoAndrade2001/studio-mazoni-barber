@@ -76,6 +76,38 @@ function duration(minutes) {
   return `${rest} min`;
 }
 
+function ScissorsIcon() {
+  return (
+    <svg className="scissors-icon-svg" viewBox="0 0 120 70" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="24" cy="27" r="10"/>
+      <circle cx="24" cy="47" r="10"/>
+      <path d="M34 32 L102 10"/>
+      <path d="M34 42 L102 61"/>
+      <path d="M43 37 L78 36"/>
+    </svg>
+  );
+}
+
+function ScissorsBackground() {
+  const rows = Array.from({ length: 12 });
+  const icons = Array.from({ length: 25 });
+
+  return (
+    <div className="scissors-flow-container" aria-hidden="true">
+      {rows.map((_, rowIndex) => {
+        const isReverse = rowIndex % 2 === 1;
+        return (
+          <div key={rowIndex} className={`scissors-row ${isReverse ? "reverse" : ""}`}>
+            {icons.map((_, iconIndex) => (
+              <ScissorsIcon key={iconIndex} />
+            ))}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 function time(value) {
   return new Date(value).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
 }
@@ -210,6 +242,7 @@ function App() {
 
   return (
     <main>
+      <ScissorsBackground />
       <div className="fixed-watermark" aria-hidden="true">
         <MazoniLogo variant="watermark" />
       </div>
