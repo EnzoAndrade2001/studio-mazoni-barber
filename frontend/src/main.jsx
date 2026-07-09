@@ -314,14 +314,6 @@ function Hero({ business, view, setView, demo }) {
             <span>agenda premium</span>
           </div>
         </div>
-        <div className="view-toggle" aria-label="Alternar visualizacao">
-          <button className={view === "cliente" ? "active" : ""} onClick={() => setView("cliente")} type="button">
-            Cliente
-          </button>
-          <button className={view === "admin" ? "active" : ""} onClick={() => setView("admin")} type="button">
-            Fran Admin
-          </button>
-        </div>
       </nav>
 
       <div className="hero-center">
@@ -334,7 +326,6 @@ function Hero({ business, view, setView, demo }) {
           </p>
           <div className="hero-actions">
             <a href="#agenda" className="primary">Agendar agora</a>
-            <a href="#admin" className="secondary" onClick={() => setView("admin")}>Ver painel da Fran</a>
           </div>
           {demo && <span className="demo-pill">Demo visual conectada a dados simulados</span>}
         </div>
