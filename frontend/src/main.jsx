@@ -189,7 +189,10 @@ function App() {
     professionals: demoProfessionals,
     demo: true,
   });
-  const [view, setView] = useState("cliente");
+  const [view, setView] = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get("admin") === "true" ? "admin" : "cliente";
+  });
   const [date, setDate] = useState(today());
   const [professionalId, setProfessionalId] = useState(2);
   const [slots, setSlots] = useState([]);
@@ -304,6 +307,8 @@ function App() {
 }
 
 function Hero({ business, view, setView, demo }) {
+  const showAdminToggle = new URLSearchParams(window.location.search).get("admin") === "true";
+
   return (
     <section className="hero">
       <nav className="nav">
@@ -314,6 +319,16 @@ function Hero({ business, view, setView, demo }) {
             <span>agenda premium</span>
           </div>
         </div>
+        {showAdminToggle && (
+          <div className="view-toggle" aria-label="Alternar visualizacao">
+            <button className={view === "cliente" ? "active" : ""} onClick={() => setView("cliente")} type="button">
+              Cliente
+            </button>
+            <button className={view === "admin" ? "active" : ""} onClick={() => setView("admin")} type="button">
+              Fran Admin
+            </button>
+          </div>
+        )}
       </nav>
 
       <div className="hero-center">
