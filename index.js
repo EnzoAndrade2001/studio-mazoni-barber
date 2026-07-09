@@ -5,8 +5,14 @@ const { executarMigracoes } = require('./src/config/migrations');
 const PORT = Number(process.env.PORT) || 3000;
 
 async function iniciarServidor() {
-    await conectarBanco();
-    await executarMigracoes();
+    try {
+        await conectarBanco();
+        await executarMigracoes();
+        console.log('Banco de dados PostgreSQL e migracoes concluidas.');
+    } catch (dbError) {
+        console.warn('\n⚠️  ATENCAO: Nao foi possivel conectar ao banco de dados PostgreSQL:', dbError.message);
+        console.warn('O servidor Express iniciara normalmente servindo o frontend moderno em modo demonstracao.\n');
+    }
 
     const app = createApp();
     const server = app.listen(PORT, () => {
