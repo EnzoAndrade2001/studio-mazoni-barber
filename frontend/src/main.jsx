@@ -24,12 +24,26 @@ const demoProfessionals = [
 ];
 
 const demoServices = [
-  { id: 1, nome: "Corte degrade", categoria: "Hair", duracao_minutos: 30, preco: 35, descricao: "Degrade alinhado com acabamento premium." },
-  { id: 2, nome: "Corte e Barba", categoria: "Combo", duracao_minutos: 60, preco: 55, descricao: "Corte, barba e finalizacao no padrao Mazoni." },
-  { id: 3, nome: "Combo", categoria: "Combo", duracao_minutos: 65, preco: 65, descricao: "Experiencia completa para renovar o visual." },
-  { id: 4, nome: "Sobrancelha", categoria: "Detalhes", duracao_minutos: 5, preco: 10, descricao: "Detalhe rapido para fechar o atendimento." },
-  { id: 5, nome: "Barba", categoria: "Barba", duracao_minutos: 30, preco: 25, descricao: "Modelagem de barba com acabamento limpo." },
-  { id: 6, nome: "Limpeza de pele", categoria: "Limpeza", duracao_minutos: 30, preco: 40, descricao: "Cuidado facial para complementar o corte." },
+  { id: 1, nome: "COMBO", categoria: "Combo", duracao_minutos: 60, preco: 60, descricao: "Combo completo do Studio Mazoni Barber." },
+  { id: 2, nome: "CORTE DEGRADE / CORTE SOCIAL", categoria: "Hair", duracao_minutos: 30, preco: 35, descricao: "Corte degrade ou social de acordo com sua preferencia." },
+  { id: 3, nome: "CORTE SIMPLES", categoria: "Hair", duracao_minutos: 30, preco: 30, descricao: "Corte social ou maquina sem degrade." },
+  { id: 4, nome: "CORTE + BARBA", categoria: "Combo", duracao_minutos: 60, preco: 55, descricao: "Corte de cabelo e modelagem completa da barba." },
+  { id: 5, nome: "CORTE + PENTEADO", categoria: "Hair", duracao_minutos: 45, preco: 45, descricao: "Corte completo acompanhado de escova e penteado especial." },
+  { id: 6, nome: "CONTORNO", categoria: "Detalhes", duracao_minutos: 15, preco: 15, descricao: "Alinhamento apenas da linha do cabelo (pezinho)." },
+  { id: 7, nome: "SOBRANCELHA", categoria: "Detalhes", duracao_minutos: 15, preco: 15, descricao: "Design de sobrancelha com navalha." },
+  { id: 8, nome: "BARBA SIMPLES", categoria: "Barba", duracao_minutos: 30, preco: 25, descricao: "Barba rapida feita com navalha e espuma." },
+  { id: 9, nome: "BARBA FINALIZADA", categoria: "Barba", duracao_minutos: 35, preco: 30, descricao: "Barba completa com hidratacao de oleo ou balm e maquiagem capilar se necessario." },
+  { id: 10, nome: "BIGODE", categoria: "Barba", duracao_minutos: 15, preco: 10, descricao: "Aparar e alinhar o bigode." },
+  { id: 11, nome: "CAVANHAQUE", categoria: "Barba", duracao_minutos: 15, preco: 15, descricao: "Modelagem de cavanhaque e limpeza do rosto." },
+  { id: 12, nome: "CORTE + COLORACAO", categoria: "Quimica", duracao_minutos: 60, preco: 80, descricao: "Corte acompanhado de coloracao tradicional ou corretiva." },
+  { id: 13, nome: "CORTE + PLATINADO", categoria: "Quimica", duracao_minutos: 120, preco: 120, descricao: "Descoloracao completa do cabelo ate o tom platinado." },
+  { id: 14, nome: "CORTE + LUZES", categoria: "Quimica", duracao_minutos: 90, preco: 90, descricao: "Luzes (reflexos) no papel ou touca." },
+  { id: 15, nome: "CORTE + LUZES PLATINADA", categoria: "Quimica", duracao_minutos: 120, preco: 130, descricao: "Luzes descoloridas e matizadas para tom platinado." },
+  { id: 16, nome: "CORTE + RELAXAMENTO", categoria: "Quimica", duracao_minutos: 60, preco: 70, descricao: "Alisamento ou relaxamento capilar." },
+  { id: 17, nome: "MASCARA BLACK", categoria: "Limpeza de pele", duracao_minutos: 20, preco: 20, descricao: "Mascara preta removedora de cravos e impurezas." },
+  { id: 18, nome: "CERA", categoria: "Limpeza de pele", duracao_minutos: 15, preco: 15, descricao: "Depilacao de orelhas ou nariz usando cera morna." },
+  { id: 19, nome: "PIGMENTACAO", categoria: "Detalhes", duracao_minutos: 20, preco: 20, descricao: "Pigmentacao de cabelo ou barba para esconder imperfeicoes." },
+  { id: 20, nome: "DEPILACAO", categoria: "Limpeza de pele", duracao_minutos: 30, preco: 30, descricao: "Depilacao facial completa ou partes especificas." },
 ];
 
 const demoBusiness = {
@@ -1804,9 +1818,42 @@ function InventoryPanel({ demo }) {
       setProducts(result);
     } catch {
       setProducts([
-        { id: 1, nome: "Pomada Modeladora Efeito Seco", categoria: "Pomada", preco_venda: 45, custo_unitario: 20, estoque_atual: 15, estoque_minimo: 5, controla_estoque: true, observacoes: "Fixacao forte, efeito mate." },
-        { id: 2, nome: "Oleo para Barba Wood & Spice", categoria: "Oleo", preco_venda: 60, custo_unitario: 28, estoque_atual: 3, estoque_minimo: 5, controla_estoque: true, observacoes: "Hidratacao e perfume amadeirado." },
-        { id: 3, nome: "Shampoo de Cabelo e Barba 2 em 1", categoria: "Shampoo", preco_venda: 35, custo_unitario: 15, estoque_atual: 22, estoque_minimo: 10, controla_estoque: true, observacoes: "Uso diario para limpeza profunda." }
+        // Produtos
+        { id: 1, nome: "POMADA CARAMELO", categoria: "Pomada", preco_venda: 35, custo_unitario: 15, estoque_atual: 20, estoque_minimo: 5, controla_estoque: true },
+        { id: 2, nome: "POMADA MATTE", categoria: "Pomada", preco_venda: 35, custo_unitario: 15, estoque_atual: 20, estoque_minimo: 5, controla_estoque: true },
+        { id: 3, nome: "POMADA TEIA", categoria: "Pomada", preco_venda: 35, custo_unitario: 15, estoque_atual: 20, estoque_minimo: 5, controla_estoque: true },
+        { id: 4, nome: "POMADA PÓ", categoria: "Pomada", preco_venda: 40, custo_unitario: 18, estoque_atual: 15, estoque_minimo: 5, controla_estoque: true },
+        { id: 5, nome: "POMADA PREMIUM", categoria: "Pomada", preco_venda: 50, custo_unitario: 22, estoque_atual: 10, estoque_minimo: 3, controla_estoque: true },
+        { id: 6, nome: "CETOCONAZOL", categoria: "Cabelo", preco_venda: 45, custo_unitario: 20, estoque_atual: 8, estoque_minimo: 2, controla_estoque: true },
+        { id: 7, nome: "MINOXIDIL", categoria: "Crescimento", preco_venda: 80, custo_unitario: 35, estoque_atual: 12, estoque_minimo: 3, controla_estoque: true },
+        { id: 8, nome: "GEL FORTE", categoria: "Gel", preco_venda: 20, custo_unitario: 8, estoque_atual: 25, estoque_minimo: 5, controla_estoque: true },
+        { id: 9, nome: "GEL", categoria: "Gel", preco_venda: 15, custo_unitario: 6, estoque_atual: 30, estoque_minimo: 5, controla_estoque: true },
+        { id: 10, nome: "ÓLEO PARA BARBA", categoria: "Barba", preco_venda: 45, custo_unitario: 18, estoque_atual: 15, estoque_minimo: 4, controla_estoque: true },
+        { id: 11, nome: "BALM", categoria: "Barba", preco_venda: 35, custo_unitario: 15, estoque_atual: 20, estoque_minimo: 5, controla_estoque: true },
+        { id: 12, nome: "ESPONJA NUDREAD", categoria: "Acessório", preco_venda: 25, custo_unitario: 10, estoque_atual: 15, estoque_minimo: 3, controla_estoque: true },
+        { id: 13, nome: "HIDRATAÇÃO", categoria: "Cabelo", preco_venda: 40, custo_unitario: 15, estoque_atual: 10, estoque_minimo: 2, controla_estoque: true },
+        { id: 14, nome: "PASTA BRILHO", categoria: "Pomada", preco_venda: 35, custo_unitario: 15, estoque_atual: 10, estoque_minimo: 3, controla_estoque: true },
+        { id: 15, nome: "PASTA SECO", categoria: "Pomada", preco_venda: 35, custo_unitario: 15, estoque_atual: 10, estoque_minimo: 3, controla_estoque: true },
+        { id: 16, nome: "SHAMPOO ESCURECEDOR", categoria: "Cabelo", preco_venda: 50, custo_unitario: 22, estoque_atual: 8, estoque_minimo: 2, controla_estoque: true },
+        { id: 17, nome: "SHAMPOO MINOXIDIL", categoria: "Crescimento", preco_venda: 60, custo_unitario: 25, estoque_atual: 10, estoque_minimo: 3, controla_estoque: true },
+        
+        // Bebidas
+        { id: 18, nome: "ÁGUA", categoria: "Bebidas", preco_venda: 4, custo_unitario: 1.5, estoque_atual: 50, estoque_minimo: 10, controla_estoque: true },
+        { id: 19, nome: "STELLA", categoria: "Bebidas", preco_venda: 10, custo_unitario: 4.5, estoque_atual: 24, estoque_minimo: 6, controla_estoque: true },
+        { id: 20, nome: "STELLA GOLD", categoria: "Bebidas", preco_venda: 11, custo_unitario: 5, estoque_atual: 24, estoque_minimo: 6, controla_estoque: true },
+        { id: 21, nome: "HEINEKEN", categoria: "Bebidas", preco_venda: 10, custo_unitario: 4.5, estoque_atual: 48, estoque_minimo: 12, controla_estoque: true },
+        { id: 22, nome: "SPATEN", categoria: "Bebidas", preco_venda: 9, custo_unitario: 4, estoque_atual: 36, estoque_minimo: 12, controla_estoque: true },
+        { id: 23, nome: "CORONA", categoria: "Bebidas", preco_venda: 12, custo_unitario: 5.5, estoque_atual: 24, estoque_minimo: 6, controla_estoque: true },
+        { id: 24, nome: "AMSTEL ULTRA", categoria: "Bebidas", preco_venda: 9, custo_unitario: 4, estoque_atual: 24, estoque_minimo: 6, controla_estoque: true },
+        { id: 25, nome: "BUDWEISER", categoria: "Bebidas", preco_venda: 9, custo_unitario: 4, estoque_atual: 24, estoque_minimo: 6, controla_estoque: true },
+        { id: 26, nome: "RED BULL", categoria: "Bebidas", preco_venda: 15, custo_unitario: 7, estoque_atual: 20, estoque_minimo: 5, controla_estoque: true },
+        { id: 27, nome: "BULL DOG ENERGÉTICO", categoria: "Bebidas", preco_venda: 12, custo_unitario: 5, estoque_atual: 15, estoque_minimo: 5, controla_estoque: true },
+        { id: 28, nome: "MONSTER", categoria: "Bebidas", preco_venda: 14, custo_unitario: 6, estoque_atual: 24, estoque_minimo: 6, controla_estoque: true },
+        { id: 29, nome: "4ENERGY", categoria: "Bebidas", preco_venda: 10, custo_unitario: 4.5, estoque_atual: 20, estoque_minimo: 5, controla_estoque: true },
+        { id: 30, nome: "BALY", categoria: "Bebidas", preco_venda: 10, custo_unitario: 4.5, estoque_atual: 20, estoque_minimo: 5, controla_estoque: true },
+        { id: 31, nome: "REFRI 200ML", categoria: "Bebidas", preco_venda: 5, custo_unitario: 2, estoque_atual: 30, estoque_minimo: 8, controla_estoque: true },
+        { id: 32, nome: "COCA 200ML", categoria: "Bebidas", preco_venda: 5, custo_unitario: 2, estoque_atual: 30, estoque_minimo: 8, controla_estoque: true },
+        { id: 33, nome: "SINUCA", categoria: "Lazer", preco_venda: 15, custo_unitario: 0, estoque_atual: 1, estoque_minimo: 0, controla_estoque: false }
       ]);
       setNotice("Demo de estoque com dados simulados.");
     } finally {

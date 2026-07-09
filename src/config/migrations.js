@@ -367,12 +367,26 @@ TRUNCATE servicos_base_padrao;
 
 INSERT INTO servicos_base_padrao (nome, descricao, categoria, duracao_minutos, preco)
 VALUES
-    ('Corte degrade', 'Corte degrade com acabamento alinhado ao estilo do cliente.', 'Hair', 30, 35.00),
-    ('Corte e Barba', 'Combo classico com corte, barba e finalizacao.', 'Combo', 60, 55.00),
-    ('Combo', 'Combo completo do Studio Mazoni Barber para renovar o visual.', 'Combo', 65, 65.00),
-    ('Sobrancelha', 'Acabamento rapido para alinhar a expressao.', 'Detalhes', 5, 10.00),
-    ('Barba', 'Modelagem e acabamento de barba.', 'Barba', 30, 25.00),
-    ('Limpeza de pele', 'Cuidado facial para complementar o atendimento.', 'Limpeza de pele', 30, 40.00);
+    ('COMBO', 'Combo completo do Studio Mazoni Barber.', 'Combo', 60, 60.00),
+    ('CORTE DEGRADE / CORTE SOCIAL', 'Corte degrade ou social de acordo com sua preferencia.', 'Hair', 30, 35.00),
+    ('CORTE SIMPLES', 'Corte social ou maquina sem degrade.', 'Hair', 30, 30.00),
+    ('CORTE + BARBA', 'Corte de cabelo e modelagem completa da barba.', 'Combo', 60, 55.00),
+    ('CORTE + PENTEADO', 'Corte completo acompanhado de escova e penteado especial.', 'Hair', 45, 45.00),
+    ('CONTORNO', 'Alinhamento apenas da linha do cabelo (pezinho).', 'Detalhes', 15, 15.00),
+    ('SOBRANCELHA', 'Design de sobrancelha com navalha.', 'Detalhes', 15, 15.00),
+    ('BARBA SIMPLES', 'Barba rapida feita com navalha e espuma.', 'Barba', 30, 25.00),
+    ('BARBA FINALIZADA', 'Barba completa com hidratacao de oleo ou balm e maquiagem capilar se necessario.', 'Barba', 35, 30.00),
+    ('BIGODE', 'Aparar e alinhar o bigode.', 'Barba', 15, 10.00),
+    ('CAVANHAQUE', 'Modelagem de cavanhaque e limpeza do rosto.', 'Barba', 15, 15.00),
+    ('CORTE + COLORACAO', 'Corte acompanhado de coloracao tradicional ou corretiva.', 'Quimica', 60, 80.00),
+    ('CORTE + PLATINADO', 'Descoloracao completa do cabelo ate o tom platinado.', 'Quimica', 120, 120.00),
+    ('CORTE + LUZES', 'Luzes (reflexos) no papel ou touca.', 'Quimica', 90, 90.00),
+    ('CORTE + LUZES PLATINADA', 'Luzes descoloridas e matizadas para tom platinado.', 'Quimica', 120, 130.00),
+    ('CORTE + RELAXAMENTO', 'Alisamento ou relaxamento capilar.', 'Quimica', 60, 70.00),
+    ('MASCARA BLACK', 'Mascara preta removedora de cravos e impurezas.', 'Limpeza de pele', 20, 20.00),
+    ('CERA', 'Depilacao de orelhas ou nariz usando cera morna.', 'Limpeza de pele', 15, 15.00),
+    ('PIGMENTACAO', 'Pigmentacao de cabelo ou barba para esconder imperfeicoes.', 'Detalhes', 20, 20.00),
+    ('DEPILACAO', 'Depilacao facial facial completa ou partes específicas.', 'Limpeza de pele', 30, 30.00);
 
 UPDATE servicos s
 SET nome = p.nome,
@@ -425,17 +439,61 @@ CREATE TABLE IF NOT EXISTS pacote_clientes (
 
 CREATE INDEX IF NOT EXISTS pacote_clientes_cliente_idx ON pacote_clientes (cliente_id);
 
+CREATE UNIQUE INDEX IF NOT EXISTS produtos_nome_unique_idx ON produtos (nome);
+
 INSERT INTO pacotes (nome, descricao, valor, quantidade_sessoes, servico_id, validade_dias)
-SELECT 'PLANO CORTE', '4 cortes no mes (1 corte por semana). Economia e estilo garantidos.', 120.00, 4, (SELECT id FROM servicos WHERE nome = 'Corte degrade' LIMIT 1), 30
+SELECT 'PLANO CORTE', '4 cortes no mes (1 corte por semana). Economia e estilo garantidos.', 120.00, 4, (SELECT id FROM servicos WHERE nome = 'CORTE DEGRADE / CORTE SOCIAL' LIMIT 1), 30
 WHERE NOT EXISTS (SELECT 1 FROM pacotes WHERE nome = 'PLANO CORTE');
 
 INSERT INTO pacotes (nome, descricao, valor, quantidade_sessoes, servico_id, validade_dias)
-SELECT 'PLANO BARBA', '4 barbas no mes (1x por semana). Barba sempre alinhada e hidratada.', 85.00, 4, (SELECT id FROM servicos WHERE nome = 'Barba' LIMIT 1), 30
+SELECT 'PLANO BARBA', '4 barbas no mes (1x por semana). Barba sempre alinhada e hidratada.', 85.00, 4, (SELECT id FROM servicos WHERE nome = 'BARBA SIMPLES' LIMIT 1), 30
 WHERE NOT EXISTS (SELECT 1 FROM pacotes WHERE nome = 'PLANO BARBA');
 
 INSERT INTO pacotes (nome, descricao, valor, quantidade_sessoes, servico_id, validade_dias)
-SELECT 'PLANO LUXO', '4 cortes simples + 4 barbas no mes. O cuidado completo que voce merece.', 160.00, 4, (SELECT id FROM servicos WHERE nome = 'Corte e Barba' LIMIT 1), 30
+SELECT 'PLANO LUXO', '4 cortes simples + 4 barbas no mes. O cuidado completo que voce merece.', 160.00, 4, (SELECT id FROM servicos WHERE nome = 'CORTE + BARBA' LIMIT 1), 30
 WHERE NOT EXISTS (SELECT 1 FROM pacotes WHERE nome = 'PLANO LUXO');
+
+-- Produtos e Bebidas da comanda
+INSERT INTO produtos (nome, categoria, preco_venda, custo_unitario, estoque_atual, estoque_minimo)
+VALUES
+    ('POMADA CARAMELO', 'Pomada', 35.00, 15.00, 20, 5),
+    ('POMADA MATTE', 'Pomada', 35.00, 15.00, 20, 5),
+    ('POMADA TEIA', 'Pomada', 35.00, 15.00, 20, 5),
+    ('POMADA PO', 'Pomada', 40.00, 18.00, 15, 5),
+    ('POMADA PREMIUM', 'Pomada', 50.00, 22.00, 10, 3),
+    ('CETOCONAZOL', 'Cabelo', 45.00, 20.00, 8, 2),
+    ('MINOXIDIL', 'Crescimento', 80.00, 35.00, 12, 3),
+    ('GEL FORTE', 'Gel', 20.00, 8.00, 25, 5),
+    ('GEL', 'Gel', 15.00, 6.00, 30, 5),
+    ('OLEO PARA BARBA', 'Barba', 45.00, 18.00, 15, 4),
+    ('BALM', 'Barba', 35.00, 15.00, 20, 5),
+    ('ESPONJA NUDREAD', 'Acessorio', 25.00, 10.00, 15, 3),
+    ('HIDRATACAO', 'Cabelo', 40.00, 15.00, 10, 2),
+    ('PASTA BRILHO', 'Pomada', 35.00, 15.00, 10, 3),
+    ('PASTA SECO', 'Pomada', 35.00, 15.00, 10, 3),
+    ('SHAMPOO ESCURECEDOR', 'Cabelo', 50.00, 22.00, 8, 2),
+    ('SHAMPOO MINOXIDIL', 'Crescimento', 60.00, 25.00, 10, 3)
+ON CONFLICT (nome) DO NOTHING;
+
+INSERT INTO produtos (nome, categoria, preco_venda, custo_unitario, estoque_atual, estoque_minimo, controla_estoque)
+VALUES
+    ('AGUA', 'Bebidas', 4.00, 1.50, 50, 10, TRUE),
+    ('STELLA', 'Bebidas', 10.00, 4.50, 24, 6, TRUE),
+    ('STELLA GOLD', 'Bebidas', 11.00, 5.00, 24, 6, TRUE),
+    ('HEINEKEN', 'Bebidas', 10.00, 4.50, 48, 12, TRUE),
+    ('SPATEN', 'Bebidas', 9.00, 4.00, 36, 12, TRUE),
+    ('CORONA', 'Bebidas', 12.00, 5.50, 24, 6, TRUE),
+    ('AMSTEL ULTRA', 'Bebidas', 9.00, 4.00, 24, 6, TRUE),
+    ('BUDWEISER', 'Bebidas', 9.00, 4.00, 24, 6, TRUE),
+    ('RED BULL', 'Bebidas', 15.00, 7.00, 20, 5, TRUE),
+    ('BULL DOG ENERGETICO', 'Bebidas', 12.00, 5.00, 15, 5, TRUE),
+    ('MONSTER', 'Bebidas', 14.00, 6.00, 24, 6, TRUE),
+    ('4ENERGY', 'Bebidas', 10.00, 4.50, 20, 5, TRUE),
+    ('BALY', 'Bebidas', 10.00, 4.50, 20, 5, TRUE),
+    ('REFRI 200ML', 'Bebidas', 5.00, 2.00, 30, 8, TRUE),
+    ('COCA 200ML', 'Bebidas', 5.00, 2.00, 30, 8, TRUE),
+    ('SINUCA', 'Lazer', 15.00, 0.00, 1, 0, FALSE)
+ON CONFLICT (nome) DO NOTHING;
 
 DROP TABLE IF EXISTS servicos_base_padrao;
 DROP TABLE IF EXISTS profissionais_base_padrao;
