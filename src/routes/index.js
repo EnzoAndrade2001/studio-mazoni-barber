@@ -14,6 +14,7 @@ const whatsapp = require('../controllers/whatsappController');
 const produto = require('../controllers/produtoController');
 const produtos = require('../controllers/produtosController');
 const acoesPublicas = require('../controllers/acoesPublicasController');
+const pacotes = require('../controllers/pacotesController');
 const adminAuth = require('../middleware/adminAuth');
 
 const router = express.Router();
@@ -95,5 +96,15 @@ router.get('/horarios-funcionamento', adminAuth.exigirAdmin, sistema.listarHorar
 router.patch('/horarios-funcionamento/:dia', adminAuth.exigirAdmin, sistema.atualizarHorarioFuncionamento);
 router.get('/configuracoes/negocio', adminAuth.exigirAdmin, sistema.buscarNegocio);
 router.patch('/configuracoes/negocio', adminAuth.exigirAdmin, sistema.atualizarNegocio);
+
+// Rotas de Pacotes e Planos
+router.get('/pacotes', pacotes.listar);
+router.get('/pacotes/:id', pacotes.buscar);
+router.post('/pacotes', adminAuth.exigirAdmin, pacotes.criar);
+router.patch('/pacotes/:id', adminAuth.exigirAdmin, pacotes.atualizar);
+router.delete('/pacotes/:id', adminAuth.exigirAdmin, pacotes.remover);
+router.get('/clientes/:clienteId/pacotes', adminAuth.exigirAdmin, pacotes.listarDoCliente);
+router.post('/pacotes/adquirir', adminAuth.exigirAdmin, pacotes.adquirir);
+router.patch('/pacotes/adquiridos/:id/pagamento', adminAuth.exigirAdmin, pacotes.atualizarPagamento);
 
 module.exports = router;

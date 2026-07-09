@@ -389,6 +389,18 @@ function ClientBooking(props) {
   const slotServices = slot?.servicos?.length ? slot.servicos : services;
   const onlinePayment = ["pix_online", "cartao_online"].includes(paymentMethod);
 
+  const [serviceQuery, setServiceQuery] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("Todos");
+
+  const filteredServices = useMemo(() => {
+    return services.filter(s => {
+      const matchQuery = s.nome.toLowerCase().includes(serviceQuery.toLowerCase()) || 
+                         (s.descricao && s.descricao.toLowerCase().includes(serviceQuery.toLowerCase()));
+      const matchCat = selectedCategory === "Todos" || s.categoria === selectedCategory;
+      return matchQuery && matchCat;
+    });
+  }, [services, serviceQuery, selectedCategory]);
+
   useEffect(() => {
     if (chargeType === "pagar_na_hora" && onlinePayment) setPaymentMethod("pix_manual");
     if (chargeType !== "pagar_na_hora" && paymentMethod === "dinheiro") setPaymentMethod("pix_online");
@@ -652,23 +664,99 @@ function ClientBooking(props) {
         </div>
       </section>
 
-      <section id="servicos" className="services-section">
-        <div className="section-heading">
-          <p className="eyebrow dark">Servicos</p>
-          <h2>Precos e duracoes importados da base atual da barbearia.</h2>
+      <section id="servicos" className="services-section" style={{ background: 'rgba(255, 255, 255, 0.95)', border: '1px solid #ddd5c6', borderRadius: '24px', padding: '24px 20px', maxWidth: '800px', margin: '40px auto 0', color: '#111' }}>
+        <div className="section-heading" style={{ marginBottom: '20px' }}>
+          <p className="eyebrow dark">Catalogo de Servicos</p>
+          <h2 style={{ color: '#111' }}>Precos e duracoes reais do Studio Mazoni Barber.</h2>
         </div>
-        <div className="service-grid">
-          {services.map((service) => (
-            <article key={service.id} className="service-card">
-              <span>{service.categoria}</span>
-              <h3>{service.nome}</h3>
-              <p>{service.descricao}</p>
-              <div>
-                <strong>{money(service.preco)}</strong>
-                <small>{duration(service.duracao_minutos)}</small>
+
+        {/* Busca e Filtros */}
+        <div style={{ display: 'grid', gap: '12px', marginBottom: '24px' }}>
+          <div style={{ position: 'relative', display: 'flex', gap: '8px' }}>
+            <input 
+              type="text" 
+              placeholder="Pesquisar nome do servico..." 
+              value={serviceQuery}
+              style={{ flex: 1, padding: '12px 16px', borderRadius: '12px', border: '1px solid #ddd5c6', fontSize: '14px', background: '#fff', color: '#111' }}
+              onChange={(e) => setServiceQuery(e.target.value)}
+            />
+          </div>
+
+          <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '8px', scrollbarWidth: 'none' }}>
+            <button 
+              type="button" 
+              style={{
+                background: selectedCategory === "Todos" ? "#111" : "#fff",
+                color: selectedCategory === "Todos" ? "#d7b46a" : "#111",
+                border: '1px solid #ddd5c6',
+                borderRadius: '999px',
+                padding: '8px 16px',
+                fontWeight: 'bold',
+                fontSize: '13px',
+                whiteSpace: 'nowrap',
+                cursor: 'pointer'
+              }}
+              onClick={() => setSelectedCategory("Todos")}
+            >
+              Todas as categorias
+            </button>
+            {Array.from(new Set(services.map(s => s.categoria))).map(cat => (
+              <button 
+                key={cat}
+                type="button" 
+                style={{
+                  background: selectedCategory === cat ? "#111" : "#fff",
+                  color: selectedCategory === cat ? "#d7b46a" : "#111",
+                  border: '1px solid #ddd5c6',
+                  borderRadius: '999px',
+                  padding: '8px 16px',
+                  fontWeight: 'bold',
+                  fontSize: '13px',
+                  whiteSpace: 'nowrap',
+                  cursor: 'pointer'
+                }}
+                onClick={() => setSelectedCategory(cat)}
+              >
+                {cat}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Lista Categorizada */}
+        <div style={{ display: 'grid', gap: '24px' }}>
+          {Array.from(new Set(filteredServices.map(s => s.categoria))).map(category => (
+            <div key={category}>
+              <h3 style={{ fontSize: '18px', fontWeight: 'bold', color: '#111', borderBottom: '1px solid #eee', paddingBottom: '8px', marginBottom: '12px', textAlign: 'left' }}>{category}</h3>
+              <div style={{ display: 'grid', gap: '16px' }}>
+                {filteredServices.filter(s => s.categoria === category).map(service => (
+                  <div 
+                    key={service.id} 
+                    style={{ 
+                      display: 'flex', 
+                      justifyContent: 'space-between', 
+                      alignItems: 'flex-start',
+                      padding: '12px 16px', 
+                      background: '#fff', 
+                      borderRadius: '12px', 
+                      border: '1px solid #eee',
+                      borderLeft: '4px solid #d7b46a',
+                      boxShadow: '0 2px 8px rgba(0,0,0,0.02)',
+                      textAlign: 'left'
+                    }}
+                  >
+                    <div>
+                      <h4 style={{ margin: 0, fontSize: '15px', color: '#111', fontWeight: 'bold' }}>{service.nome}</h4>
+                      <span style={{ fontSize: '12px', color: '#706758', display: 'block', marginTop: '2px' }}>{duration(service.duracao_minutos)}</span>
+                      {service.descricao && <p style={{ margin: '6px 0 0', fontSize: '13px', color: '#666', lineHeight: '1.4' }}>{service.descricao}</p>}
+                    </div>
+                    <strong style={{ fontSize: '16px', color: '#111', marginLeft: '12px', whiteSpace: 'nowrap' }}>{money(service.preco)}</strong>
+                  </div>
+                ))}
               </div>
-            </article>
+            </div>
           ))}
+          {!filteredServices.length && <div className="empty-column">Nenhum servico encontrado.</div>}
         </div>
       </section>
     </>
@@ -817,6 +905,8 @@ function AdminPanel({ data, setData, businessHours, setBusinessHours, bookingRul
         {[
           ["agenda", "Agenda"],
           ["espera", "Espera"],
+          ["pacotes", "Pacotes"],
+          ["estoque", "Estoque"],
           ["clientes", "Clientes"],
           ["barbeiros", "Barbeiros"],
           ["jornada", "Configuracoes"],
@@ -836,6 +926,8 @@ function AdminPanel({ data, setData, businessHours, setBusinessHours, bookingRul
       </div>
       {tab === "agenda" && <AgendaBoard professionals={professionals} demo={demo} />}
       {tab === "espera" && <WaitlistPanel demo={demo} />}
+      {tab === "pacotes" && <PackagesPanel demo={demo} services={services} />}
+      {tab === "estoque" && <InventoryPanel demo={demo} />}
       {tab === "clientes" && <ClientsPanel demo={demo} />}
       {tab === "barbeiros" && (
         <AdminPanelGrid>
@@ -1616,6 +1708,414 @@ function RulesConfig({ rules, setRules, demo, setNotice }) {
       )}
       <button className="primary" type="submit">Salvar Regras</button>
     </form>
+  );
+}
+
+function InventoryPanel({ demo }) {
+  const [products, setProducts] = useState([]);
+  const [selectedProduct, setSelectedProduct] = useState(null);
+  const [notice, setNotice] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [movementForm, setMovementForm] = useState({ tipo: "entrada", quantidade: 1, valor_unitario: 0, observacoes: "" });
+
+  async function loadProducts() {
+    setLoading(true);
+    setNotice("");
+    try {
+      if (demo) throw new Error("demo");
+      const result = await apiRequest("/api/produtos");
+      setProducts(result);
+    } catch {
+      setProducts([
+        { id: 1, nome: "Pomada Modeladora Efeito Seco", categoria: "Pomada", preco_venda: 45, custo_unitario: 20, estoque_atual: 15, estoque_minimo: 5, controla_estoque: true, observacoes: "Fixacao forte, efeito mate." },
+        { id: 2, nome: "Oleo para Barba Wood & Spice", categoria: "Oleo", preco_venda: 60, custo_unitario: 28, estoque_atual: 3, estoque_minimo: 5, controla_estoque: true, observacoes: "Hidratacao e perfume amadeirado." },
+        { id: 3, nome: "Shampoo de Cabelo e Barba 2 em 1", categoria: "Shampoo", preco_venda: 35, custo_unitario: 15, estoque_atual: 22, estoque_minimo: 10, controla_estoque: true, observacoes: "Uso diario para limpeza profunda." }
+      ]);
+      setNotice("Demo de estoque com dados simulados.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    loadProducts();
+  }, []);
+
+  async function saveProduct(event) {
+    event.preventDefault();
+    const form = new FormData(event.currentTarget);
+    const payload = {
+      nome: form.get("nome"),
+      categoria: form.get("categoria") || "Retail",
+      preco_venda: Number(form.get("preco_venda")),
+      custo_unitario: Number(form.get("custo_unitario")),
+      estoque_atual: Number(form.get("estoque_atual")),
+      estoque_minimo: Number(form.get("estoque_minimo")),
+      controla_estoque: form.get("controla_estoque") === "on",
+      observacoes: form.get("observacoes")
+    };
+
+    try {
+      if (demo) {
+        const mock = { ...payload, id: Date.now() };
+        setProducts([...products, mock]);
+        event.currentTarget.reset();
+        setNotice("Produto criado com sucesso na demo.");
+        return;
+      }
+      const saved = await apiRequest("/api/produtos", {
+        method: "POST",
+        body: payload
+      });
+      setProducts([...products, saved]);
+      event.currentTarget.reset();
+      setNotice("Produto cadastrado com sucesso.");
+      await loadProducts();
+    } catch (error) {
+      setNotice(error.message);
+    }
+  }
+
+  async function handleMovement(event) {
+    event.preventDefault();
+    if (!selectedProduct) return;
+    try {
+      if (demo) {
+        const nextQty = movementForm.tipo === "entrada"
+          ? selectedProduct.estoque_atual + Number(movementForm.quantidade)
+          : Math.max(selectedProduct.estoque_atual - Number(movementForm.quantidade), 0);
+        
+        setProducts(products.map(p => p.id === selectedProduct.id ? { ...p, estoque_atual: nextQty } : p));
+        setNotice("Movimentacao registrada na demo.");
+        setSelectedProduct(null);
+        return;
+      }
+      await apiRequest(`/api/produtos/${selectedProduct.id}/movimentos`, {
+        method: "POST",
+        body: {
+          tipo: movementForm.tipo,
+          quantidade: Number(movementForm.quantidade),
+          valor_unitario: Number(movementForm.valor_unitario || selectedProduct.custo_unitario),
+          observacoes: movementForm.observacoes
+        }
+      });
+      setNotice("Estoque movimentado com sucesso.");
+      setSelectedProduct(null);
+      await loadProducts();
+    } catch (error) {
+      setNotice(error.message);
+    }
+  }
+
+  return (
+    <div className="inventory-panel">
+      {notice && <div className="admin-notice">{notice}</div>}
+
+      <AdminPanelGrid>
+        {/* Formulario lateral */}
+        <div style={{ display: 'grid', gap: '14px', alignContent: 'start' }}>
+          {!selectedProduct ? (
+            <form className="admin-form" onSubmit={saveProduct}>
+              <h3>Novo Produto</h3>
+              <input name="nome" placeholder="Nome do produto" required />
+              <input name="categoria" placeholder="Categoria (Ex: Pomada, Oleo)" />
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <input name="preco_venda" type="number" step="0.01" placeholder="Venda (R$)" required />
+                <input name="custo_unitario" type="number" step="0.01" placeholder="Custo (R$)" required />
+              </div>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <input name="estoque_atual" type="number" placeholder="Estoque Inicial" defaultValue="0" required />
+                <input name="estoque_minimo" type="number" placeholder="Estoque Minimo" defaultValue="5" required />
+              </div>
+              <label className="switch-line">
+                <input name="controla_estoque" type="checkbox" defaultChecked />
+                Controlar estoque
+              </label>
+              <textarea name="observacoes" placeholder="Observacoes" rows="2"></textarea>
+              <button className="primary" type="submit">Cadastrar Produto</button>
+            </form>
+          ) : (
+            <form className="admin-form" onSubmit={handleMovement}>
+              <h3>Movimentar Estoque</h3>
+              <p style={{ fontSize: '13px', color: '#666' }}>Produto: <strong>{selectedProduct.nome}</strong></p>
+              <p style={{ fontSize: '12px', color: '#888' }}>Estoque atual: {selectedProduct.estoque_atual} unidades</p>
+              
+              <label>
+                Tipo de movimentacao
+                <select 
+                  value={movementForm.tipo} 
+                  onChange={(e) => setMovementForm({ ...movementForm, tipo: e.target.value })}
+                >
+                  <option value="entrada">Entrada (Compra/Reposicao)</option>
+                  <option value="saida">Saida (Ajuste/Perda/Uso)</option>
+                  <option value="ajuste">Ajuste de Estoque</option>
+                </select>
+              </label>
+
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <label style={{ flex: 1 }}>
+                  Quantidade
+                  <input 
+                    type="number" 
+                    min="1" 
+                    value={movementForm.quantidade} 
+                    onChange={(e) => setMovementForm({ ...movementForm, quantidade: e.target.value })} 
+                    required 
+                  />
+                </label>
+                <label style={{ flex: 1 }}>
+                  Valor Unit. (R$)
+                  <input 
+                    type="number" 
+                    step="0.01" 
+                    value={movementForm.valor_unitario} 
+                    onChange={(e) => setMovementForm({ ...movementForm, valor_unitario: e.target.value })} 
+                  />
+                </label>
+              </div>
+
+              <textarea 
+                placeholder="Observacoes/Motivo" 
+                rows="2"
+                value={movementForm.observacoes} 
+                onChange={(e) => setMovementForm({ ...movementForm, observacoes: e.target.value })}
+              ></textarea>
+
+              <div style={{ display: 'flex', gap: '8px', marginTop: '4px' }}>
+                <button className="primary" type="submit" style={{ flex: 1 }}>Registrar</button>
+                <button className="ghost-button compact" type="button" style={{ flex: 1 }} onClick={() => setSelectedProduct(null)}>Cancelar</button>
+              </div>
+            </form>
+          )}
+        </div>
+
+        {/* Tabela de produtos */}
+        <div className="admin-list" style={{ display: 'grid', gap: '12px' }}>
+          <h3>Itens no Inventario</h3>
+          {products.map(prod => {
+            const isLowStock = prod.controla_estoque && prod.estoque_atual <= prod.estoque_minimo;
+            return (
+              <article 
+                key={prod.id} 
+                className="admin-row" 
+                style={{ 
+                  display: 'flex', 
+                  justifyContent: 'space-between', 
+                  alignItems: 'center', 
+                  padding: '16px', 
+                  borderLeft: isLowStock ? '5px solid #e05555' : '5px solid #d7b46a'
+                }}
+              >
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{ fontSize: '11px', textTransform: 'uppercase', color: '#8c6a2e', fontWeight: 'bold' }}>{prod.categoria}</span>
+                    {isLowStock && (
+                      <span style={{ background: '#ffebee', color: '#c62828', fontSize: '10px', padding: '2px 6px', borderRadius: '4px', fontWeight: 'bold' }}>Estoque Baixo</span>
+                    )}
+                  </div>
+                  <strong style={{ fontSize: '15px', display: 'block', marginTop: '2px' }}>{prod.nome}</strong>
+                  <small style={{ color: '#666', display: 'block', marginTop: '4px' }}>
+                    Preco: {money(prod.preco_venda)} · Custo: {money(prod.custo_unitario)}
+                  </small>
+                </div>
+                <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'flex-end' }}>
+                  <div style={{ fontSize: '14px', fontWeight: 'bold' }}>
+                    Qtd: <span style={{ fontSize: '18px', color: isLowStock ? '#e05555' : '#111' }}>{prod.estoque_atual}</span> / {prod.estoque_minimo} (min)
+                  </div>
+                  <button 
+                    type="button" 
+                    className="ghost-button compact" 
+                    style={{ width: 'auto', minHeight: '30px', fontSize: '12px', padding: '0 10px' }}
+                    onClick={() => {
+                      setSelectedProduct(prod);
+                      setMovementForm({ tipo: "entrada", quantidade: 1, valor_unitario: prod.custo_unitario, observacoes: "" });
+                    }}
+                  >
+                    Movimentar
+                  </button>
+                </div>
+              </article>
+            );
+          })}
+          {!products.length && <div className="empty-column">Nenhum produto cadastrado no inventario.</div>}
+        </div>
+      </AdminPanelGrid>
+    </div>
+  );
+}
+
+function PackagesPanel({ demo, services }) {
+  const [packages, setPackages] = useState([]);
+  const [activeTab, setActiveTab] = useState("pacotes"); // "pacotes" ou "titulares"
+  const [buyers, setBuyers] = useState([]);
+  const [notice, setNotice] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  async function loadPackages() {
+    setLoading(true);
+    setNotice("");
+    try {
+      if (demo) throw new Error("demo");
+      const result = await apiRequest("/api/pacotes?incluir_inativos=true");
+      setPackages(result);
+    } catch {
+      setPackages([
+        { id: 1, nome: "PLANO CORTE", valor: 120, quantidade_sessoes: 4, servico_nome: "Corte degrade", descricao: "4 cortes no mes (1 corte por semana).", ativo: true },
+        { id: 2, nome: "PLANO BARBA", valor: 85, quantidade_sessoes: 4, servico_nome: "Barba", descricao: "4 barbas no mes (1x por semana).", ativo: true },
+        { id: 3, nome: "PLANO LUXO", valor: 160, quantidade_sessoes: 4, servico_nome: "Corte e Barba", descricao: "4 cortes simples + 4 barbas no mes.", ativo: true },
+        { id: 4, nome: "PLANO GOLD", valor: 220, quantidade_sessoes: 6, servico_nome: "Combo", descricao: "Plano combo especial com desconto.", ativo: true },
+        { id: 5, nome: "PLANO PREMIUM", valor: 240, quantidade_sessoes: 10, servico_nome: "Combo", descricao: "Corte ilimitado no mes ou maximo 10 sessoes.", ativo: true }
+      ]);
+      setNotice("Demo de pacotes com dados simulados.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function loadBuyers() {
+    try {
+      if (demo) throw new Error("demo");
+      setBuyers([
+        { id: 1, cliente_nome: "Rafael", pacote_nome: "PLANO CORTE", sessoes_restantes: 3, sessoes_totais: 4, pago: true, criado_em: today() },
+        { id: 2, cliente_nome: "Bruno", pacote_nome: "PLANO BARBA", sessoes_restantes: 4, sessoes_totais: 4, pago: false, criado_em: today() }
+      ]);
+    } catch {
+      setBuyers([
+        { id: 1, cliente_nome: "Rafael", pacote_nome: "PLANO CORTE", sessoes_restantes: 3, sessoes_totais: 4, pago: true, criado_em: today() },
+        { id: 2, cliente_nome: "Bruno", pacote_nome: "PLANO BARBA", sessoes_restantes: 4, sessoes_totais: 4, pago: false, criado_em: today() }
+      ]);
+    }
+  }
+
+  useEffect(() => {
+    loadPackages();
+    loadBuyers();
+  }, []);
+
+  async function savePackage(event) {
+    event.preventDefault();
+    const form = new FormData(event.currentTarget);
+    const payload = {
+      nome: form.get("nome"),
+      descricao: form.get("descricao"),
+      valor: Number(form.get("valor")),
+      quantidade_sessoes: Number(form.get("quantidade_sessoes")),
+      servico_id: Number(form.get("servico_id")),
+      validade_dias: Number(form.get("validade_dias") || 30)
+    };
+
+    try {
+      if (demo) {
+        const mock = { ...payload, id: Date.now(), servico_nome: services.find(s => s.id === payload.servico_id)?.nome || "Servico", ativo: true };
+        setPackages([...packages, mock]);
+        event.currentTarget.reset();
+        setNotice("Plano criado com sucesso na demo.");
+        return;
+      }
+      const saved = await apiRequest("/api/pacotes", {
+        method: "POST",
+        body: payload
+      });
+      setPackages([...packages, saved]);
+      event.currentTarget.reset();
+      setNotice("Plano criado com sucesso.");
+      await loadPackages();
+    } catch (error) {
+      setNotice(error.message);
+    }
+  }
+
+  async function togglePackage(pkg) {
+    try {
+      if (!demo) {
+        await apiRequest(`/api/pacotes/${pkg.id}`, {
+          method: "PATCH",
+          body: { ativo: !pkg.ativo }
+        });
+      }
+      setPackages(packages.map(p => p.id === pkg.id ? { ...p, ativo: !p.ativo } : p));
+      setNotice("Plano atualizado.");
+    } catch (error) {
+      setNotice(error.message);
+    }
+  }
+
+  return (
+    <div className="packages-panel">
+      <div className="admin-tabs" style={{ background: '#f7f4ee', border: '1px solid #ddd5c6', borderRadius: '12px', padding: '4px', display: 'flex', gap: '4px', marginBottom: '16px' }}>
+        <button type="button" className={activeTab === "pacotes" ? "active" : ""} style={{ flex: 1, borderRadius: '8px', padding: '8px', border: 0 }} onClick={() => setActiveTab("pacotes")}>Pacotes</button>
+        <button type="button" className={activeTab === "titulares" ? "active" : ""} style={{ flex: 1, borderRadius: '8px', padding: '8px', border: 0 }} onClick={() => setActiveTab("titulares")}>Titulares / Clientes</button>
+      </div>
+
+      {notice && <div className="admin-notice">{notice}</div>}
+
+      {activeTab === "pacotes" ? (
+        <AdminPanelGrid>
+          <form className="admin-form" onSubmit={savePackage}>
+            <h3>Criar novo Pacote</h3>
+            <input name="nome" placeholder="Nome do plano (Ex: PLANO CORTE)" required />
+            <textarea name="descricao" placeholder="Descricao (Ex: 4 cortes no mes)" rows="2"></textarea>
+            <input name="valor" type="number" step="0.01" placeholder="Valor (R$)" required />
+            <input name="quantidade_sessoes" type="number" min="1" placeholder="Qtd. de sessoes inclusas" required />
+            <select name="servico_id" required>
+              <option value="">Selecione o servico base</option>
+              {services.map(s => (
+                <option key={s.id} value={s.id}>{s.nome} - {money(s.preco)}</option>
+              ))}
+            </select>
+            <input name="validade_dias" type="number" min="1" placeholder="Validade em dias" defaultValue="30" />
+            <button className="primary" type="submit">Salvar Pacote</button>
+          </form>
+
+          <div className="admin-list" style={{ display: 'grid', gap: '12px' }}>
+            <h3>Pacotes Cadastrados</h3>
+            {packages.map(pkg => (
+              <article key={pkg.id} className="admin-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px', borderLeft: '5px solid #d7b46a' }}>
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{ background: '#111', color: '#d7b46a', width: '24px', height: '24px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', borderRadius: '4px', fontSize: '12px', fontWeight: 'bold' }}>⚡</span>
+                    <strong style={{ fontSize: '16px' }}>{pkg.nome}</strong>
+                  </div>
+                  <span style={{ fontSize: '13px', color: '#666', display: 'block', marginTop: '4px' }}>{pkg.descricao}</span>
+                  <small style={{ color: '#8c6a2e', fontWeight: 'bold', display: 'block', marginTop: '4px' }}>
+                    {pkg.quantidade_sessoes} atendimentos inclusos de {pkg.servico_nome}
+                  </small>
+                </div>
+                <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'flex-end' }}>
+                  <strong style={{ fontSize: '20px', color: '#111' }}>{money(pkg.valor)}</strong>
+                  <button type="button" className="ghost-button compact" onClick={() => togglePackage(pkg)}>
+                    {pkg.ativo ? "Pausar" : "Ativar"}
+                  </button>
+                </div>
+              </article>
+            ))}
+            {!packages.length && <div className="empty-column">Nenhum pacote cadastrado.</div>}
+          </div>
+        </AdminPanelGrid>
+      ) : (
+        <div className="admin-list" style={{ display: 'grid', gap: '12px' }}>
+          <h3>Clientes Titulares de Pacotes</h3>
+          {buyers.map(b => (
+            <article key={b.id} className="admin-row" style={{ display: 'flex', justifyContent: 'space-between', padding: '16px' }}>
+              <div>
+                <strong>{b.cliente_nome}</strong>
+                <span>Pacote: {b.pacote_nome}</span>
+                <small style={{ color: '#8c6a2e', fontWeight: 'bold' }}>
+                  Restam {b.sessoes_restantes} de {b.sessoes_totais} sessoes contratadas
+                </small>
+              </div>
+              <div style={{ textAlign: 'right' }}>
+                <span className={`status-badge ${b.pago ? "confirmado" : "cancelado"}`} style={{ padding: '4px 10px', borderRadius: '100px', display: 'inline-block' }}>
+                  {b.pago ? "Pago" : "Pagamento Pendente"}
+                </span>
+                <span style={{ display: 'block', fontSize: '12px', color: '#888', marginTop: '6px' }}>Comprado em: {b.criado_em}</span>
+              </div>
+            </article>
+          ))}
+          {!buyers.length && <div className="empty-column">Nenhum cliente ativo possui pacote contratado.</div>}
+        </div>
+      )}
+    </div>
   );
 }
 

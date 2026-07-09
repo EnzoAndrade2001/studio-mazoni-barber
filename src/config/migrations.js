@@ -399,6 +399,44 @@ WHERE LOWER(nome) NOT IN (
     SELECT LOWER(nome) FROM servicos_base_padrao
 );
 
+CREATE TABLE IF NOT EXISTS pacotes (
+    id BIGSERIAL PRIMARY KEY,
+    nome VARCHAR(120) NOT NULL,
+    descricao TEXT,
+    valor NUMERIC(10, 2) NOT NULL CHECK (valor >= 0),
+    quantidade_sessoes INTEGER NOT NULL CHECK (quantidade_sessoes > 0),
+    servico_id BIGINT REFERENCES servicos(id) ON DELETE SET NULL,
+    validade_dias INTEGER NOT NULL DEFAULT 30,
+    ativo BOOLEAN NOT NULL DEFAULT TRUE,
+    criado_em TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    atualizado_em TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS pacote_clientes (
+    id BIGSERIAL PRIMARY KEY,
+    cliente_id BIGINT NOT NULL REFERENCES clientes(id) ON DELETE CASCADE,
+    pacote_id BIGINT NOT NULL REFERENCES pacotes(id) ON DELETE CASCADE,
+    sessoes_restantes INTEGER NOT NULL,
+    sessoes_totais INTEGER NOT NULL,
+    pago BOOLEAN NOT NULL DEFAULT FALSE,
+    criado_em TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    atualizado_em TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS pacote_clientes_cliente_idx ON pacote_clientes (cliente_id);
+
+INSERT INTO pacotes (nome, descricao, valor, quantidade_sessoes, servico_id, validade_dias)
+SELECT 'PLANO CORTE', '4 cortes no mes (1 corte por semana). Economia e estilo garantidos.', 120.00, 4, (SELECT id FROM servicos WHERE nome = 'Corte degrade' LIMIT 1), 30
+WHERE NOT EXISTS (SELECT 1 FROM pacotes WHERE nome = 'PLANO CORTE');
+
+INSERT INTO pacotes (nome, descricao, valor, quantidade_sessoes, servico_id, validade_dias)
+SELECT 'PLANO BARBA', '4 barbas no mes (1x por semana). Barba sempre alinhada e hidratada.', 85.00, 4, (SELECT id FROM servicos WHERE nome = 'Barba' LIMIT 1), 30
+WHERE NOT EXISTS (SELECT 1 FROM pacotes WHERE nome = 'PLANO BARBA');
+
+INSERT INTO pacotes (nome, descricao, valor, quantidade_sessoes, servico_id, validade_dias)
+SELECT 'PLANO LUXO', '4 cortes simples + 4 barbas no mes. O cuidado completo que voce merece.', 160.00, 4, (SELECT id FROM servicos WHERE nome = 'Corte e Barba' LIMIT 1), 30
+WHERE NOT EXISTS (SELECT 1 FROM pacotes WHERE nome = 'PLANO LUXO');
+
 DROP TABLE IF EXISTS servicos_base_padrao;
 DROP TABLE IF EXISTS profissionais_base_padrao;
 `;
