@@ -908,7 +908,8 @@ function AdminPanel({ data, setData, businessHours, setBusinessHours, bookingRul
           ["pacotes", "Pacotes"],
           ["estoque", "Estoque"],
           ["clientes", "Clientes"],
-          ["barbeiros", "Barbeiros"],
+          ["equipe", "Equipe"],
+          ["mensagens", "Mensagens"],
           ["jornada", "Configuracoes"],
           ["servicos", "Servicos"],
           ["relatorios", "Relatorios"],
@@ -929,38 +930,14 @@ function AdminPanel({ data, setData, businessHours, setBusinessHours, bookingRul
       {tab === "pacotes" && <PackagesPanel demo={demo} services={services} />}
       {tab === "estoque" && <InventoryPanel demo={demo} />}
       {tab === "clientes" && <ClientsPanel demo={demo} />}
-      {tab === "barbeiros" && (
-        <AdminPanelGrid>
-          <form className="admin-form" onSubmit={saveProfessional}>
-            <h3>Novo barbeiro</h3>
-            <input name="nome" placeholder="Nome" required />
-            <input name="apelido" placeholder="Apelido" />
-            <input name="comissao_percentual" type="number" min="0" max="100" step="0.01" placeholder="Comissao %" defaultValue="50" />
-            <label className="switch-line">
-              <input name="dono" type="checkbox" />
-              Dono
-            </label>
-            <input name="ordem" type="number" min="0" placeholder="Ordem" />
-            <textarea name="bio" placeholder="Bio curta" rows="3"></textarea>
-            <button className="primary" type="submit">Salvar barbeiro</button>
-          </form>
-          <div className="admin-list">
-            {professionals.map((professional) => (
-              <article key={professional.id} className="admin-row">
-                <ProfessionalPhoto professional={professional} />
-                <div>
-                  <strong>{professional.nome}</strong>
-                  <span>
-                    {professional.apelido || "Sem apelido"} - {professional.dono ? "dono" : `${professional.comissao_percentual ?? 50}%`} - {professional.ativo === false ? "inativo" : "ativo"}
-                  </span>
-                </div>
-                <button type="button" className="ghost-button compact" onClick={() => toggleProfessional(professional)}>
-                  {professional.ativo === false ? "Ativar" : "Pausar"}
-                </button>
-              </article>
-            ))}
-          </div>
-        </AdminPanelGrid>
+      {tab === "mensagens" && <MarketingPanel demo={demo} />}
+      {tab === "equipe" && (
+        <TeamPanel 
+          demo={demo} 
+          professionals={professionals} 
+          saveProfessional={saveProfessional} 
+          toggleProfessional={toggleProfessional} 
+        />
       )}
       {tab === "jornada" && (
         <AdminPanelGrid>
@@ -1145,6 +1122,7 @@ function ReportsPanel({ demo }) {
   const [summary, setSummary] = useState(null);
   const [reminders, setReminders] = useState([]);
   const [notice, setNotice] = useState("");
+  const [activeReportTab, setActiveReportTab] = useState("dashboard"); // "dashboard", "vendas", "financeiro", "equipe", "clientes", "inventario"
 
   async function loadReports() {
     setNotice("");
@@ -1160,6 +1138,7 @@ function ReportsPanel({ demo }) {
       setSummary({ total: 18, concluidos: 10, faturamento: 615, recebido: 615, cancelados: 1, pagamentos_pendentes: 4 });
       setReminders([
         { agendamento_id: 1, cliente_nome: "Rafael", cliente_telefone: "51999990000", servico_nome: "Corte degrade", data_retorno: date, dias_restantes: 0 },
+        { agendamento_id: 2, cliente_nome: "Bruno Santos", cliente_telefone: "51988881111", servico_nome: "Corte e Barba", data_retorno: date, dias_restantes: 2 },
       ]);
       setNotice("Demo de relatorios com dados simulados.");
     }
@@ -1167,28 +1146,126 @@ function ReportsPanel({ demo }) {
 
   useEffect(() => {
     loadReports();
-  }, []);
+  }, [date]);
 
   return (
-    <div className="commission-panel">
-      <div className="agenda-toolbar">
-        <label>
-          Data
-          <input type="date" value={date} onChange={(event) => setDate(event.target.value)} />
-        </label>
-        <button className="ghost-button compact" type="button" onClick={loadReports}>Atualizar</button>
+    <div className="reports-panel" style={{ display: 'grid', gap: '20px', color: '#111' }}>
+      <div className="admin-tabs" style={{ background: '#f7f4ee', border: '1px solid #ddd5c6', borderRadius: '12px', padding: '4px', display: 'flex', gap: '4px', overflowX: 'auto' }}>
+        {[
+          ["dashboard", "Dashboard"],
+          ["vendas", "Vendas"],
+          ["financeiro", "Financeiro"],
+          ["equipe", "Desempenho Equipe"],
+          ["clientes", "Clientes & Presenca"],
+          ["inventario", "Inventario & Consumo"]
+        ].map(([id, label]) => (
+          <button key={id} type="button" className={activeReportTab === id ? "active" : ""} style={{ flex: 1, borderRadius: '8px', padding: '8px 12px', border: 0, fontSize: '13px', whiteSpace: 'nowrap' }} onClick={() => setActiveReportTab(id)}>{label}</button>
+        ))}
       </div>
+
+      <div className="agenda-toolbar" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <label>
+          Periodo de analise: 
+          <input type="date" value={date} style={{ marginLeft: '8px' }} onChange={(event) => setDate(event.target.value)} />
+        </label>
+        <button className="ghost-button compact" type="button" onClick={loadReports}>Atualizar relatorios</button>
+      </div>
+
       {notice && <div className="admin-notice">{notice}</div>}
-      {summary && (
-        <div className="commission-totals">
-          <div><strong>{summary.total}</strong><span>marcados</span></div>
-          <div><strong>{summary.concluidos}</strong><span>concluidos</span></div>
-          <div><strong>{money(summary.recebido || summary.faturamento)}</strong><span>recebido</span></div>
-          <div><strong>{summary.pagamentos_pendentes}</strong><span>pendentes</span></div>
+
+      {activeReportTab === "dashboard" && (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px' }}>
+          
+          {/* Card Vendas Recentes */}
+          <div className="hour-card" style={{ padding: '20px', display: 'grid', gap: '12px', background: '#fff', border: '1px solid #eee' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <strong>Vendas recentes (ultimos 7 dias)</strong>
+              <span style={{ fontSize: '12px', color: '#8c6a2e', fontWeight: 'bold' }}>+12%</span>
+            </div>
+            <div style={{ height: '80px', display: 'flex', alignItems: 'flex-end', gap: '8px', padding: '10px 0' }}>
+              {/* SVG Grafico de linha simulado */}
+              <svg viewBox="0 0 100 30" style={{ width: '100%', height: '100%' }}>
+                <path d="M0,25 Q15,10 30,18 T60,5 T90,12 T100,2" fill="none" stroke="#d7b46a" strokeWidth="2" />
+                <path d="M0,25 Q15,10 30,18 T60,5 T90,12 T100,2 L100,30 L0,30 Z" fill="rgba(215,180,106,0.15)" />
+              </svg>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: '#666' }}>
+              <span>Total vendido: <b>R$ 2.450,00</b></span>
+              <span>18 transacoes</span>
+            </div>
+          </div>
+
+          {/* Card Proximos Agendamentos */}
+          <div className="hour-card" style={{ padding: '20px', display: 'grid', gap: '12px', background: '#fff', border: '1px solid #eee' }}>
+            <strong>Taxa de Ocupacao (por dia)</strong>
+            <div style={{ height: '80px', display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: '8px' }}>
+              {[
+                { dia: "Seg", val: 30 },
+                { dia: "Ter", val: 55 },
+                { dia: "Qua", val: 70 },
+                { dia: "Qui", val: 85 },
+                { dia: "Sex", val: 95 },
+                { dia: "Sab", val: 100 },
+                { dia: "Dom", val: 0 }
+              ].map((d, idx) => (
+                <div key={idx} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
+                  <div style={{ width: '100%', height: `${d.val * 0.6}px`, background: d.val > 80 ? '#111' : '#d7b46a', borderRadius: '4px' }}></div>
+                  <span style={{ fontSize: '9px', color: '#666' }}>{d.dia}</span>
+                </div>
+              ))}
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: '#666' }}>
+              <span>Media ocupacao: <b>67%</b></span>
+              <span>Sabado esgotado</span>
+            </div>
+          </div>
+
+          {/* Card Ocupacao de Cadeiras/Barbeiros */}
+          <div className="hour-card" style={{ padding: '20px', display: 'grid', gap: '12px', background: '#fff', border: '1px solid #eee' }}>
+            <strong>Desempenho de Barbeiros</strong>
+            <div style={{ display: 'grid', gap: '8px' }}>
+              {[
+                { nome: "Leo Mazoni", pct: 90, valor: 1450 },
+                { nome: "Deryck", pct: 75, valor: 850 },
+                { nome: "Gustavo", pct: 55, valor: 680 }
+              ].map((b, idx) => (
+                <div key={idx} style={{ fontSize: '12px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '2px' }}>
+                    <span>{b.nome}</span>
+                    <span><b>{money(b.valor)}</b> ({b.pct}%)</span>
+                  </div>
+                  <div style={{ background: '#eee', height: '6px', borderRadius: '3px', overflow: 'hidden' }}>
+                    <div style={{ background: '#d7b46a', width: `${b.pct}%`, height: '100%' }}></div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
         </div>
       )}
-      <section className="pending-strip">
-        <h3>Lembretes de retorno</h3>
+
+      {activeReportTab !== "dashboard" && (
+        <div className="admin-list" style={{ display: 'grid', gap: '12px' }}>
+          <h3>Relatorios Disponiveis: {activeReportTab.toUpperCase()}</h3>
+          {[
+            { titulo: `Resumo financeiro detalhado de ${activeReportTab}`, descricao: "Analise de fluxo de caixa, pagamentos online contra recebimentos em maos." },
+            { titulo: `Relatorio consolidado de performance (${activeReportTab})`, descricao: "Analise comparativa com o mes anterior e taxas de cancelamento." },
+            { titulo: `Exportacao completa para Planilha (CSV/Excel)`, descricao: "Exportar dados brutos prontos para envio ao contador da barbearia." }
+          ].map((item, idx) => (
+            <article key={idx} className="admin-row" style={{ display: 'flex', justifyContent: 'space-between', padding: '16px' }}>
+              <div>
+                <strong>{item.titulo}</strong>
+                <span style={{ fontSize: '13px', color: '#666' }}>{item.descricao}</span>
+              </div>
+              <button type="button" className="primary compact" onClick={() => alert("Relatorio gerado em PDF!")}>Gerar</button>
+            </article>
+          ))}
+        </div>
+      )}
+
+      <section className="pending-strip" style={{ marginTop: '16px' }}>
+        <h3>Lembretes de retorno sugeridos</h3>
         <div className="pending-list">
           {reminders.length ? reminders.map((item) => (
             <article key={item.agendamento_id} className="pending-card">
@@ -1197,7 +1274,7 @@ function ReportsPanel({ demo }) {
                 <strong>{item.cliente_nome}</strong>
                 <span>{item.servico_nome} - {item.cliente_telefone}</span>
               </div>
-              <span>{Number(item.dias_restantes) <= 0 ? "Hoje/atrasado" : `${item.dias_restantes} dias`}</span>
+              <span>{Number(item.dias_restantes) <= 0 ? "Retorno hoje" : `Em ${item.dias_restantes} dias`}</span>
             </article>
           )) : <div className="empty-column">Nenhum lembrete no periodo.</div>}
         </div>
@@ -2113,6 +2190,220 @@ function PackagesPanel({ demo, services }) {
             </article>
           ))}
           {!buyers.length && <div className="empty-column">Nenhum cliente ativo possui pacote contratado.</div>}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function TeamPanel({ demo, professionals, saveProfessional, toggleProfessional }) {
+  const [activeTab, setActiveTab] = useState("colaboradores"); // "colaboradores", "turnos", "ciclos"
+
+  return (
+    <div className="team-panel">
+      <div className="admin-tabs" style={{ background: '#f7f4ee', border: '1px solid #ddd5c6', borderRadius: '12px', padding: '4px', display: 'flex', gap: '4px', marginBottom: '16px' }}>
+        <button type="button" className={activeTab === "colaboradores" ? "active" : ""} style={{ flex: 1, borderRadius: '8px', padding: '8px', border: 0 }} onClick={() => setActiveTab("colaboradores")}>Colaboradores</button>
+        <button type="button" className={activeTab === "turnos" ? "active" : ""} style={{ flex: 1, borderRadius: '8px', padding: '8px', border: 0 }} onClick={() => setActiveTab("turnos")}>Turnos Programados</button>
+        <button type="button" className={activeTab === "ciclos" ? "active" : ""} style={{ flex: 1, borderRadius: '8px', padding: '8px', border: 0 }} onClick={() => setActiveTab("ciclos")}>Ciclos de Pagamento</button>
+      </div>
+
+      {activeTab === "colaboradores" && (
+        <AdminPanelGrid>
+          <form className="admin-form" onSubmit={saveProfessional}>
+            <h3>Novo barbeiro</h3>
+            <input name="nome" placeholder="Nome" required />
+            <input name="apelido" placeholder="Apelido" />
+            <input name="comissao_percentual" type="number" min="0" max="100" step="0.01" placeholder="Comissao %" defaultValue="50" />
+            <label className="switch-line">
+              <input name="dono" type="checkbox" />
+              Dono
+            </label>
+            <input name="ordem" type="number" min="0" placeholder="Ordem" />
+            <textarea name="bio" placeholder="Bio curta" rows="3"></textarea>
+            <button className="primary" type="submit">Salvar barbeiro</button>
+          </form>
+          <div className="admin-list">
+            {professionals.map((professional) => (
+              <article key={professional.id} className="admin-row">
+                <ProfessionalPhoto professional={professional} />
+                <div>
+                  <strong>{professional.nome}</strong>
+                  <span>
+                    {professional.apelido || "Sem apelido"} - {professional.dono ? "dono" : `${professional.comissao_percentual ?? 50}%`} - {professional.ativo === false ? "inativo" : "ativo"}
+                  </span>
+                </div>
+                <button type="button" className="ghost-button compact" onClick={() => toggleProfessional(professional)}>
+                  {professional.ativo === false ? "Ativar" : "Pausar"}
+                </button>
+              </article>
+            ))}
+          </div>
+        </AdminPanelGrid>
+      )}
+
+      {activeTab === "turnos" && (
+        <div className="admin-list" style={{ display: 'grid', gap: '12px' }}>
+          <h3>Escalas e Turnos Semanais</h3>
+          {professionals.map(p => (
+            <article key={p.id} className="admin-row" style={{ display: 'flex', justifyContent: 'space-between', padding: '16px' }}>
+              <div>
+                <strong>{p.nome} ({p.apelido || "Barbeiro"})</strong>
+                <span style={{ fontSize: '13px', color: '#666' }}>Escala padrao: Terca a Sabado · 09:00 as 20:00</span>
+              </div>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <span style={{ background: '#e8f5e9', color: '#2e7d32', padding: '4px 10px', borderRadius: '100px', fontSize: '11px', fontWeight: 'bold' }}>Trabalhando Hoje</span>
+                <button type="button" className="ghost-button compact" onClick={() => alert("Funcao para editar turnos programados!")}>Ajustar Turno</button>
+              </div>
+            </article>
+          ))}
+        </div>
+      )}
+
+      {activeTab === "ciclos" && (
+        <div className="admin-list" style={{ display: 'grid', gap: '12px' }}>
+          <h3>Ciclos de Repasses e Fechamento</h3>
+          {[
+            { id: 1, periodo: "01/07 a 07/07", total: 1240, status: "fechado" },
+            { id: 2, periodo: "08/07 a 15/07 (Atual)", total: 615, status: "em_aberto" }
+          ].map(c => (
+            <article key={c.id} className="admin-row" style={{ display: 'flex', justifyContent: 'space-between', padding: '16px' }}>
+              <div>
+                <strong>Ciclo Semanal: {c.periodo}</strong>
+                <span style={{ fontSize: '13px', color: '#666' }}>Faturamento estimado no ciclo: {money(c.total)}</span>
+              </div>
+              <span className={`status-badge ${c.status === "fechado" ? "confirmado" : "pendente"}`} style={{ padding: '6px 12px', borderRadius: '999px', fontSize: '12px' }}>
+                {c.status === "fechado" ? "Pago & Fechado" : "Em aberto"}
+              </span>
+            </article>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function MarketingPanel({ demo }) {
+  const [activeTab, setActiveTab] = useState("campanhas"); // "campanhas", "mensagens", "ofertas", "avaliacoes"
+
+  return (
+    <div className="marketing-panel" style={{ color: '#111' }}>
+      <div className="admin-tabs" style={{ background: '#f7f4ee', border: '1px solid #ddd5c6', borderRadius: '12px', padding: '4px', display: 'flex', gap: '4px', marginBottom: '16px' }}>
+        {[
+          ["campanhas", "Campanhas em Massa"],
+          ["mensagens", "Mensagens Automaticas"],
+          ["ofertas", "Ofertas & Precos"],
+          ["avaliacoes", "Avaliacoes dos Clientes"]
+        ].map(([id, label]) => (
+          <button key={id} type="button" className={activeTab === id ? "active" : ""} style={{ flex: 1, borderRadius: '8px', padding: '8px 10px', border: 0, fontSize: '13px', whiteSpace: 'nowrap' }} onClick={() => setActiveTab(id)}>{label}</button>
+        ))}
+      </div>
+
+      {activeTab === "campanhas" && (
+        <AdminPanelGrid>
+          <form className="admin-form" onSubmit={(e) => { e.preventDefault(); alert("Campanha disparada via WhatsApp!"); }}>
+            <h3>Criar Campanha em Massa</h3>
+            <input placeholder="Titulo da campanha (Ex: Promocao de Inverno)" required />
+            <select required>
+              <option value="todos">Enviar para todos os clientes ({demo ? 120 : "carregando..."})</option>
+              <option value="inativos">Clientes inativos (+60 dias sem voltar)</option>
+              <option value="vips">Apenas clientes VIP</option>
+            </select>
+            <textarea placeholder="Escreva a mensagem (suporta tags como {nome} e {link_agendamento})" rows="4" required></textarea>
+            <button className="primary" type="submit">Enviar pelo WhatsApp</button>
+          </form>
+
+          <div className="admin-list" style={{ display: 'grid', gap: '12px' }}>
+            <h3>Historico de Campanhas</h3>
+            {[
+              { data: "01/07/2026", titulo: "Aviso de Ferias do Leo", status: "Concluido", destinatarios: 112 },
+              { data: "15/06/2026", titulo: "Desconto 15% Terca-Feira", status: "Concluido", destinatarios: 89 }
+            ].map((camp, idx) => (
+              <article key={idx} className="admin-row" style={{ display: 'flex', justifyContent: 'space-between', padding: '16px' }}>
+                <div>
+                  <strong>{camp.titulo}</strong>
+                  <span style={{ fontSize: '12px', color: '#666' }}>Disparado em: {camp.data} · Destinatarios: {camp.destinatarios}</span>
+                </div>
+                <span className="status-badge confirmado" style={{ padding: '4px 10px', borderRadius: '100px' }}>{camp.status}</span>
+              </article>
+            ))}
+          </div>
+        </AdminPanelGrid>
+      )}
+
+      {activeTab === "mensagens" && (
+        <div className="admin-list" style={{ display: 'grid', gap: '12px' }}>
+          <h3>Regras de Mensagens Automaticas (WhatsApp)</h3>
+          {[
+            { acao: "Confirmacao de agendamento", gatilho: "Imediato apos o cliente marcar", ativo: true },
+            { acao: "Lembrete de consulta", gatilho: "2 horas antes do atendimento", ativo: true },
+            { acao: "Pesquisa de satisfacao", gatilho: "1 hora apos a finalizacao", ativo: false },
+            { acao: "Alerta de risco de no-show", gatilho: "Caso o score caia", ativo: true }
+          ].map((msg, idx) => (
+            <article key={idx} className="admin-row" style={{ display: 'flex', justifyContent: 'space-between', padding: '16px' }}>
+              <div>
+                <strong>{msg.acao}</strong>
+                <span style={{ fontSize: '12px', color: '#666' }}>Gatilho: {msg.gatilho}</span>
+              </div>
+              <label className="switch-line" style={{ margin: 0 }}>
+                <input type="checkbox" defaultChecked={msg.ativo} />
+                Ativa
+              </label>
+            </article>
+          ))}
+        </div>
+      )}
+
+      {activeTab === "ofertas" && (
+        <AdminPanelGrid>
+          <form className="admin-form" onSubmit={(e) => { e.preventDefault(); alert("Preco inteligente salvo!"); }}>
+            <h3>Configurar Precos Inteligentes</h3>
+            <p style={{ fontSize: '13px', color: '#666' }}>Ofereça descontos automaticos em horarios ociosos na agenda publica.</p>
+            <label>
+              Selecione o dia da semana
+              <select>
+                <option value="1">Segunda-feira</option>
+                <option value="2">Terca-feira</option>
+                <option value="3">Quarta-feira</option>
+              </select>
+            </label>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <input type="time" defaultValue="09:00" />
+              <input type="time" defaultValue="14:00" />
+            </div>
+            <input type="number" min="1" max="90" placeholder="Percentual de Desconto (Ex: 15%)" required />
+            <button className="primary" type="submit">Salvar Regra de Preco</button>
+          </form>
+
+          <div className="admin-list" style={{ display: 'grid', gap: '12px' }}>
+            <h3>Ofertas Ativas</h3>
+            <article className="admin-row" style={{ display: 'flex', justifyContent: 'space-between', padding: '16px', borderLeft: '4px solid #d7b46a' }}>
+              <div>
+                <strong>Desconto "Terca Feliz"</strong>
+                <span style={{ fontSize: '12px', color: '#666' }}>15% de desconto em qualquer servico das 09:00 as 13:00</span>
+              </div>
+              <button type="button" className="ghost-button compact" style={{ color: '#e05555' }}>Desativar</button>
+            </article>
+          </div>
+        </AdminPanelGrid>
+      )}
+
+      {activeTab === "avaliacoes" && (
+        <div className="admin-list" style={{ display: 'grid', gap: '12px' }}>
+          <h3>Avaliacoes e Feedbacks Recebidos</h3>
+          {[
+            { cliente: "Rafael Silva", nota: 5, comentario: "Excelente corte, barbeiro super gente boa. Recomendo demais!", data: "Hoje" },
+            { cliente: "Guilherme Santos", nota: 5, comentario: "O Studio Mazoni e diferenciado, cafezinho de primeira e degrade perfeito.", data: "Ontem" },
+            { cliente: "Carlos Souza", nota: 4, comentario: "Gostei bastante do atendimento, so atrasou 5 minutinhos.", data: "2 dias atras" }
+          ].map((av, idx) => (
+            <article key={idx} className="admin-row" style={{ display: 'grid', gap: '6px', padding: '16px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <strong>{av.cliente}</strong>
+                <span style={{ color: '#d7b46a', fontWeight: 'bold' }}>{"★".repeat(av.nota)}{"☆".repeat(5-av.nota)}</span>
+              </div>
+              <p style={{ margin: 0, fontSize: '13px', color: '#444' }}>"{av.comentario}"</p>
+              <small style={{ color: '#888' }}>Recebida em: {av.data}</small>
+            </article>
+          ))}
         </div>
       )}
     </div>
