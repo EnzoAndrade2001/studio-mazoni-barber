@@ -31,3 +31,9 @@ Thumbs.db
 
 # Cobertura de testes
 coverage/
+
+# wrangler files
+.wrangler
+.dev.vars*
+!.dev.vars.example
+!.env.example
