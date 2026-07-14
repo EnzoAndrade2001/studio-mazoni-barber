@@ -116,6 +116,9 @@ const el = {
     adminUser: document.querySelector('#adminUser'),
     adminToken: document.querySelector('#adminToken'),
     logoutButton: document.querySelector('#logoutButton'),
+    userNameDisplay: document.querySelector('#userNameDisplay'),
+    userRoleDisplay: document.querySelector('#userRoleDisplay'),
+    userAvatar: document.querySelector('#userAvatar'),
     editDialog: document.querySelector('#editDialog'),
     editForm: document.querySelector('#editForm'),
     closeEdit: document.querySelector('#closeEdit'),
@@ -2079,6 +2082,17 @@ async function checkAdminAccess() {
         el.adminUser.required = Boolean(status.usuario_obrigatorio);
     }
     
+    // Atualizar perfil do usuário na barra superior
+    if (el.userNameDisplay && el.userRoleDisplay && status.nome) {
+        const nome = status.nome || 'Visitante';
+        const isDono = status.role === 'admin';
+        el.userNameDisplay.textContent = nome;
+        el.userRoleDisplay.textContent = isDono ? 'Dono (Acesso Total)' : 'Barbeiro (Acesso Restrito)';
+        if (el.userAvatar) {
+            el.userAvatar.textContent = nome.charAt(0);
+        }
+    }
+
     // Restrição visual por tipo de usuário (role)
     if (status.role && status.role !== 'admin') {
         const hideElements = [

@@ -79,6 +79,15 @@
         </aside>
         <div class="admin-main-content">
 <header class="topbar">
+        <div class="user-profile" id="userProfile" style="display: flex; align-items: center; gap: 8px; margin-right: auto;">
+            <div id="userAvatar" style="width: 36px; height: 36px; border-radius: 50%; background: var(--surface-color); border: 1px solid var(--border-color); display: flex; align-items: center; justify-content: center; font-weight: 600; color: var(--text-color); font-size: 16px; text-transform: uppercase;">
+                L
+            </div>
+            <div style="display: flex; flex-direction: column; line-height: 1.2;">
+                <strong id="userNameDisplay" style="font-size: 14px; color: var(--text-color); text-transform: capitalize;">Usuário</strong>
+                <span id="userRoleDisplay" style="font-size: 11px; color: var(--text-muted); font-weight: 500;">Permissão</span>
+            </div>
+        </div>
         <div class="topbar-actions">
             <a class="ghost-button nav-admin" href="index.html" aria-label="Abrir site publico">Site</a>
             <div class="notifications">
