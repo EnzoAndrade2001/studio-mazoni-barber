@@ -10,7 +10,7 @@ function inicial(nome) {
 
 function dadosNegocio() {
     const nome = textoEnv('BUSINESS_NAME', 'Studio Mazoni Barber');
-    const proprietaria = textoEnv('BUSINESS_OWNER_NAME', 'Franciele');
+    const proprietaria = textoEnv('BUSINESS_OWNER_NAME', 'Admin');
     return {
         nome,
         nome_curto: textoEnv('BUSINESS_SHORT_NAME', 'Mazoni Barber'),

@@ -1,5 +1,6 @@
 const crypto = require('crypto');
 const { HttpError } = require('../utils/httpError');
+const { pool } = require('../config/database');
 
 const COOKIE_NAME = 'agenda_admin_session';
 const SESSION_SECONDS = 8 * 60 * 60;
@@ -8,30 +9,25 @@ const MAX_ATTEMPTS = 8;
 const SCRYPT_KEY_LENGTH = 64;
 const attempts = new Map();
 
-function producao() {
-    return process.env.NODE_ENV === 'production';
-}
+function producao() { return process.env.NODE_ENV === 'production'; }
 
 function authDesabilitadaParaTeste() {
     return process.env.DISABLE_ADMIN_AUTH === 'true' && !producao();
 }
 
-function credenciaisConfiguradas() {
-    return Boolean(process.env.ADMIN_PASSWORD_HASH || process.env.ADMIN_TOKEN);
+function temBancoConfigurado() {
+    return Boolean(process.env.DATABASE_URL || (process.env.DB_USER && process.env.DB_PASSWORD));
 }
 
-function adminProtegido() {
-    if (authDesabilitadaParaTeste()) return false;
-    return true;
-}
-
-function sessionSecret() {
-    return process.env.ADMIN_SESSION_SECRET || process.env.ADMIN_PASSWORD_HASH || process.env.ADMIN_TOKEN || null;
-}
+// In local demo mode, we mock the users to allow testing the UI without a Postgres database
+const demoUsers = [
+    { id: 1, usuario: 'leo', nome: 'Léo', dono: true, senha_hash: 'mock' },
+    { id: 2, usuario: 'gustavo', nome: 'Gustavo', dono: false, senha_hash: 'mock' },
+    { id: 3, usuario: 'derick', nome: 'Derick', dono: false, senha_hash: 'mock' }
+];
 
 function cookieSeguro() {
-    return producao()
-        || (process.env.PUBLIC_BASE_URL || '').startsWith('https://');
+    return producao() || (process.env.PUBLIC_BASE_URL || '').startsWith('https://');
 }
 
 function parseCookies(header = '') {
@@ -41,13 +37,12 @@ function parseCookies(header = '') {
     }).filter(([key]) => key));
 }
 
+function sessionSecret() {
+    return process.env.ADMIN_SESSION_SECRET || 'chave-secreta-padrao-fallback';
+}
+
 function assinar(payload) {
-    const secret = sessionSecret();
-    if (!secret) throw new Error('Credenciais administrativas nao configuradas.');
-    return crypto
-        .createHmac('sha256', secret)
-        .update(payload)
-        .digest('base64url');
+    return crypto.createHmac('sha256', sessionSecret()).update(payload).digest('base64url');
 }
 
 function safeEqualText(a = '', b = '') {
@@ -58,49 +53,60 @@ function safeEqualText(a = '', b = '') {
 }
 
 function validarSenhaHash(senha, hashConfig) {
+    if (hashConfig === 'mock') return true; // Accept any password in demo mode
     const [algoritmo, salt, hash] = String(hashConfig || '').split('$');
     if (algoritmo !== 'scrypt' || !salt || !hash) return false;
     const senhaHash = crypto.scryptSync(String(senha || ''), salt, SCRYPT_KEY_LENGTH).toString('base64url');
     return safeEqualText(senhaHash, hash);
 }
 
-function credenciaisValidas(body = {}) {
-    if (!credenciaisConfiguradas()) return false;
-    if (process.env.ADMIN_USER && !safeEqualText(body.usuario || '', process.env.ADMIN_USER)) return false;
-    if (process.env.ADMIN_PASSWORD_HASH) return validarSenhaHash(body.token, process.env.ADMIN_PASSWORD_HASH);
-    return Boolean(process.env.ADMIN_TOKEN) && safeEqualText(body.token || '', process.env.ADMIN_TOKEN);
-}
-
-function criarSessao() {
+function criarSessao(userId, role, nome) {
     const payload = Buffer.from(JSON.stringify({
         iat: Date.now(),
-        exp: Date.now() + SESSION_SECONDS * 1000
+        exp: Date.now() + SESSION_SECONDS * 1000,
+        userId,
+        role,
+        nome
     })).toString('base64url');
     return `${payload}.${assinar(payload)}`;
 }
 
-function sessaoValida(req) {
-    if (!adminProtegido()) return true;
-    if (!credenciaisConfiguradas()) return false;
+function obterSessaoToken(req) {
     const token = parseCookies(req.headers.cookie)[COOKIE_NAME];
-    if (!token || !token.includes('.')) return false;
+    if (!token || !token.includes('.')) return null;
     const [payload, signature] = token.split('.');
     const expected = assinar(payload);
-    if (signature.length !== expected.length) return false;
-    if (!crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expected))) return false;
+    if (signature.length !== expected.length) return null;
+    if (!crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expected))) return null;
     try {
         const data = JSON.parse(Buffer.from(payload, 'base64url').toString('utf8'));
-        return Number(data.exp) > Date.now();
+        if (Number(data.exp) < Date.now()) return null;
+        return data; // { userId, role, nome }
     } catch (error) {
-        return false;
+        return null;
     }
 }
 
-function setSessionCookie(res) {
+function sessaoValida(req) {
+    // Se o auth esta totalmente desabilitado para teste automatizado (bypass total)
+    if (authDesabilitadaParaTeste()) {
+        req.admin = { userId: 1, role: 'admin', nome: 'Léo (Demo)' };
+        return true;
+    }
+
+    const data = obterSessaoToken(req);
+    if (data) {
+        req.admin = data;
+        return true;
+    }
+    return false;
+}
+
+function setSessionCookie(res, userId, role, nome) {
     const secure = cookieSeguro() ? '; Secure' : '';
     res.setHeader(
         'Set-Cookie',
-        `${COOKIE_NAME}=${encodeURIComponent(criarSessao())}; HttpOnly; SameSite=Strict; Path=/; Max-Age=${SESSION_SECONDS}${secure}`
+        `${COOKIE_NAME}=${encodeURIComponent(criarSessao(userId, role, nome))}; HttpOnly; SameSite=Strict; Path=/; Max-Age=${SESSION_SECONDS}${secure}`
     );
 }
 
@@ -109,9 +115,7 @@ function clearSessionCookie(res) {
     res.setHeader('Set-Cookie', `${COOKIE_NAME}=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0${secure}`);
 }
 
-function clientKey(req) {
-    return req.ip || req.socket.remoteAddress || 'unknown';
-}
+function clientKey(req) { return req.ip || req.socket.remoteAddress || 'unknown'; }
 
 function registrarFalha(req) {
     const key = clientKey(req);
@@ -133,34 +137,72 @@ function limparTentativas(req) {
     attempts.delete(clientKey(req));
 }
 
+// Middleware: Qualquer login valido serve (agenda)
 function exigirAdmin(req, res, next) {
-    if (!adminProtegido() || sessaoValida(req)) return next();
+    if (sessaoValida(req)) return next();
     return next(new HttpError(401, 'Acesso administrativo nao autorizado.'));
 }
 
+// Middleware: Apenas dono pode (financeiro, produtos, config)
+function exigirDono(req, res, next) {
+    if (sessaoValida(req) && req.admin && req.admin.role === 'admin') return next();
+    return next(new HttpError(403, 'Acesso restrito apenas ao dono.'));
+}
+
 function statusAdmin(req, res) {
+    const isLogado = sessaoValida(req);
     res.json({
-        protegido: adminProtegido(),
-        autenticado: sessaoValida(req),
-        usuario_obrigatorio: Boolean(process.env.ADMIN_USER)
+        protegido: !authDesabilitadaParaTeste(),
+        autenticado: isLogado,
+        role: isLogado ? req.admin.role : null,
+        nome: isLogado ? req.admin.nome : null,
+        usuario_obrigatorio: true
     });
 }
 
-function loginAdmin(req, res, next) {
-    if (!adminProtegido()) return res.json({ autenticado: true });
-    if (!credenciaisConfiguradas()) {
-        return next(new HttpError(503, 'Login administrativo nao configurado no servidor.'));
-    }
+async function loginAdmin(req, res, next) {
     if (muitasTentativas(req)) {
         return next(new HttpError(429, 'Muitas tentativas. Aguarde alguns minutos e tente novamente.'));
     }
-    if (!credenciaisValidas(req.body)) {
-        registrarFalha(req);
-        return next(new HttpError(401, 'Usuario ou senha administrativa invalida.'));
+    
+    const usuario = String(req.body.usuario || '').trim().toLowerCase();
+    const token = req.body.token;
+
+    // Modo Demonstracao (Local Sem Banco)
+    if (!temBancoConfigurado()) {
+        const mockUser = demoUsers.find(u => u.usuario === usuario);
+        if (!mockUser) {
+            registrarFalha(req);
+            return next(new HttpError(401, 'Usuario de demonstracao nao encontrado. Tente: leo, gustavo ou derick.'));
+        }
+        // Em modo local demo sem banco, aceitamos qualquer senha (mock)
+        const role = mockUser.dono ? 'admin' : 'barber';
+        setSessionCookie(res, mockUser.id, role, mockUser.nome);
+        limparTentativas(req);
+        return res.json({ autenticado: true, role, nome: mockUser.nome });
     }
-    limparTentativas(req);
-    setSessionCookie(res);
-    res.json({ autenticado: true });
+
+    // Modo Producao (Com Banco PostgreSQL)
+    try {
+        const { rows } = await pool.query('SELECT id, nome, dono, senha_hash FROM profissionais WHERE usuario = $1', [usuario]);
+        if (rows.length === 0 || !rows[0].senha_hash) {
+            registrarFalha(req);
+            return next(new HttpError(401, 'Usuario ou senha invalida.'));
+        }
+        
+        const profissional = rows[0];
+        if (!validarSenhaHash(token, profissional.senha_hash)) {
+            registrarFalha(req);
+            return next(new HttpError(401, 'Usuario ou senha invalida.'));
+        }
+        
+        limparTentativas(req);
+        const role = profissional.dono ? 'admin' : 'barber';
+        setSessionCookie(res, profissional.id, role, profissional.nome);
+        res.json({ autenticado: true, role, nome: profissional.nome });
+    } catch (e) {
+        return next(new HttpError(500, 'Erro interno ao validar login.'));
+    }
 }
 
 function logoutAdmin(req, res) {
@@ -170,6 +212,7 @@ function logoutAdmin(req, res) {
 
 module.exports = {
     exigirAdmin,
+    exigirDono,
     statusAdmin,
     loginAdmin,
     logoutAdmin

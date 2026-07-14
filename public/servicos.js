@@ -28,7 +28,7 @@ const state = {
 const demoBusiness = {
     nome: 'Studio Mazoni Barber',
     nome_curto: 'Mazoni Barber',
-    proprietaria: 'Franciele',
+    proprietaria: 'Admin',
     inicial: 'M',
     segmento: 'Barbearia premium',
     regiao: 'Santa Tereza, Rio Grande do Sul',
@@ -73,6 +73,7 @@ const el = {
     bottomWhatsapp: document.querySelector('#bottomWhatsapp'),
     availabilityForm: document.querySelector('#availabilityForm'),
     availabilityDate: document.querySelector('#availabilityDate'),
+    dateSlider: document.querySelector('#dateSlider'),
     availabilityProfessional: document.querySelector('#availabilityProfessional'),
     availabilityGrid: document.querySelector('#availabilityGrid'),
     servicePicker: document.querySelector('#servicePicker'),
@@ -268,10 +269,23 @@ function professionalInitial(profissional) {
 }
 
 function professionalPhoto(profissional) {
-    if (profissional && profissional.foto_url) {
-        return `<img src="${escapeHtml(profissional.foto_url)}" alt="${escapeHtml(profissional.apelido || profissional.nome)}">`;
+    if (profissional && (profissional.foto_url || profissional.fotoUrl)) {
+        return `<img src="${escapeHtml(profissional.foto_url || profissional.fotoUrl)}" alt="${escapeHtml(profissional.apelido || profissional.nome)}">`;
     }
-    return `<span>${professionalInitial(profissional)}</span>`;
+    
+    // Fallback images based on the professional name to avoid showing just letters
+    const nome = (profissional && (profissional.apelido || profissional.nome) || '').toLowerCase();
+    let fallbackFoto = 'logo.jpeg'; // default fallback
+    
+    if (nome.includes('deryck')) {
+        fallbackFoto = 'https://cdn-partners-api.fresha.com/employee-avatars/processed/297929/medium/a405200d-8c39-4177-9bf3-19a10e2abe89-WhatsApp%20Image%202026-02-25%20at%2010.34.35%20%281%29.jpeg';
+    } else if (nome.includes('leo')) {
+        fallbackFoto = 'https://cdn-partners-api.fresha.com/employee-avatars/processed/162894/medium/9fc0ae94-9870-40bc-9b13-14048b346d1c-74A1D6C4-8C27-4D18-9682-16235AA3563A.png';
+    } else if (nome.includes('gustavo') || nome.includes('gu')) {
+        fallbackFoto = 'https://cdn-partners-api.fresha.com/employee-avatars/processed/162904/medium/bf013f84-c756-4f58-a966-ac19cffd41d3-Fot%20gu.jpeg';
+    }
+    
+    return `<img src="${fallbackFoto}" alt="${escapeHtml(profissional.apelido || profissional.nome)}">`;
 }
 
 function renderProfessionalPicker() {
@@ -642,12 +656,47 @@ async function openNextAvailableDate() {
     const baseDate = today();
     el.availabilityDate.min = baseDate;
     el.availabilityDate.value = baseDate;
+    renderDatePicker(baseDate);
 
     for (let offset = 0; offset <= 21; offset += 1) {
         el.availabilityDate.value = addDays(baseDate, offset);
+        renderDatePicker(baseDate); // Highlight the selected date in slider
         const slots = await loadAvailability();
         if (slots.some((slot) => slot.disponivel)) return;
     }
+}
+
+function renderDatePicker(startDate) {
+    if (!el.dateSlider) return;
+    const days = [];
+    for (let i = 0; i < 30; i++) {
+        days.push(addDays(startDate, i));
+    }
+    
+    const meses = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+    const dias = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sab'];
+    
+    el.dateSlider.replaceChildren(...days.map(dateStr => {
+        const d = new Date(dateStr + 'T12:00:00');
+        const isSelected = el.availabilityDate.value === dateStr;
+        
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = isSelected ? 'date-chip active' : 'date-chip';
+        btn.innerHTML = `
+            <small>${dias[d.getDay()]}</small>
+            <strong>${d.getDate()}</strong>
+            <span>${meses[d.getMonth()]}</span>
+        `;
+        
+        btn.addEventListener('click', () => {
+            el.availabilityDate.value = dateStr;
+            renderDatePicker(startDate);
+            loadAvailability().catch(err => showToast(err.message));
+        });
+        
+        return btn;
+    }));
 }
 
 function bookingPayload(metodo) {
@@ -945,5 +994,42 @@ if (el.bookingWhatsapp) {
         }
     });
 }
+
+window.nextBookingStep = function(step) {
+    // Hide all steps
+    document.querySelectorAll('.booking-step-card').forEach(el => {
+        el.setAttribute('hidden', '');
+    });
+    
+    // Show target step
+    if (step === 4) {
+        document.querySelector('#bookingPanel').removeAttribute('hidden');
+        document.querySelector('#availabilityForm').style.display = 'none';
+    } else {
+        document.querySelector('#availabilityForm').style.display = 'block';
+        const targetCard = document.querySelector(`#step-card-${step}`);
+        if(targetCard) targetCard.removeAttribute('hidden');
+        document.querySelector('#bookingPanel').setAttribute('hidden', '');
+    }
+    
+    // Update nav
+    document.querySelectorAll('.booking-steps li').forEach((el, index) => {
+        if (index < step) {
+            el.classList.add('active');
+        } else {
+            el.classList.remove('active');
+        }
+    });
+    
+    // Scroll to top smoothly
+    const agendamentoSec = document.querySelector('#agendamento');
+    if(agendamentoSec) {
+        agendamentoSec.scrollIntoView({ behavior: 'smooth' });
+    }
+};
+
+window.prevBookingStep = function(step) {
+    window.nextBookingStep(step);
+};
 
 init();

@@ -50,6 +50,14 @@ const el = {
     productNotes: document.querySelector('#productNotes'),
     productAlerts: document.querySelector('#productAlerts'),
     productList: document.querySelector('#productList'),
+    invTotalProducts: document.querySelector('#invTotalProducts'),
+    invTotalValue: document.querySelector('#invTotalValue'),
+    invLowStock: document.querySelector('#invLowStock'),
+    inventoryMoveModal: document.querySelector('#inventoryMoveModal'),
+    inventoryMoveForm: document.querySelector('#inventoryMoveForm'),
+    inventoryMoveTitle: document.querySelector('#inventoryMoveTitle'),
+    inventoryMoveDesc: document.querySelector('#inventoryMoveDesc'),
+    inventoryMoveQty: document.querySelector('#inventoryMoveQty'),
     waitlistRefreshButton: document.querySelector('#waitlistRefreshButton'),
     waitlistAdminList: document.querySelector('#waitlistAdminList'),
     smartReturnRefreshButton: document.querySelector('#smartReturnRefreshButton'),
@@ -339,7 +347,7 @@ const demoAdminData = {
     negocio: {
         nome: 'Studio Mazoni Barber',
         nome_curto: 'Mazoni Barber',
-        proprietaria: 'Franciele',
+        proprietaria: 'Admin',
         inicial: 'M',
         segmento: 'Barbearia premium',
         subtitulo: 'Corte, barba e atendimento com hora marcada.',
@@ -1319,39 +1327,70 @@ function renderProducts() {
     if (!el.productList || !el.productAlerts) return;
     const produtos = state.produtos || [];
     const baixos = produtos.filter((produto) => produto.estoque_baixo);
+    
+    // Update Alerts
     el.productAlerts.innerHTML = baixos.length
         ? `<strong>${baixos.length} alerta(s) de estoque baixo</strong><span>${baixos.map((produto) => escapeHtml(produto.nome)).join(', ')}</span>`
         : '<strong>Estoque em dia</strong><span>Nenhum produto abaixo do minimo.</span>';
+        
+    // Update Summary Dashboard
+    if (el.invTotalProducts) {
+        el.invTotalProducts.textContent = produtos.length;
+        const totalValue = produtos.reduce((sum, p) => sum + (Number(p.estoque_atual || 0) * Number(p.custo_unitario || 0)), 0);
+        el.invTotalValue.textContent = currency(totalValue);
+        el.invLowStock.textContent = baixos.length;
+    }
+
     if (!produtos.length) {
         el.productList.innerHTML = '<div class="mini-empty">Nenhum produto cadastrado.</div>';
         return;
     }
-    el.productList.replaceChildren(...produtos.map((produto) => {
-        const card = document.createElement('article');
-        card.className = `inventory-card ${produto.estoque_baixo ? 'low-stock' : ''}`;
-        card.innerHTML = `
-            <div class="inventory-main">
-                <span>${escapeHtml(produto.categoria || 'Produto')}</span>
-                <h3>${escapeHtml(produto.nome)}</h3>
-                <p>${escapeHtml(produto.observacoes || 'Sem observacoes.')}</p>
-            </div>
-            <dl>
-                <div><dt>Estoque</dt><dd>${escapeHtml(productStockLabel(produto))}</dd></div>
-                <div><dt>Minimo</dt><dd>${Number(produto.estoque_minimo || 0)}</dd></div>
-                <div><dt>Venda</dt><dd>${currency(produto.preco_venda || 0)}</dd></div>
-                <div><dt>Custo</dt><dd>${currency(produto.custo_unitario || 0)}</dd></div>
-            </dl>
-        `;
-        const actions = document.createElement('div');
-        actions.className = 'inventory-actions';
-        actions.append(actionButton('Entrada', 'secondary-button mini-button', () => moveProduct(produto, 'entrada')));
-        actions.append(actionButton('Saida', 'secondary-button mini-button', () => moveProduct(produto, 'saida')));
-        actions.append(actionButton('Venda', 'primary-button mini-button', () => moveProduct(produto, 'venda')));
-        actions.append(actionButton('Editar', 'secondary-button mini-button', () => fillProductForm(produto)));
-        actions.append(actionButton('Desativar', 'danger-button mini-button', () => archiveProduct(produto)));
-        card.append(actions);
-        return card;
-    }));
+    
+    // Group products by category
+    const grouped = produtos.reduce((acc, produto) => {
+        const cat = produto.categoria || 'Sem categoria';
+        if (!acc[cat]) acc[cat] = [];
+        acc[cat].push(produto);
+        return acc;
+    }, {});
+    
+    const fragment = document.createDocumentFragment();
+    
+    for (const [categoria, items] of Object.entries(grouped).sort()) {
+        const title = document.createElement('h3');
+        title.className = 'inventory-category-title';
+        title.textContent = categoria;
+        fragment.appendChild(title);
+        
+        items.forEach(produto => {
+            const card = document.createElement('article');
+            card.className = `inventory-card ${produto.estoque_baixo ? 'low-stock' : ''}`;
+            card.innerHTML = `
+                <div class="inventory-main">
+                    <span>${escapeHtml(produto.categoria || 'Produto')}</span>
+                    <h3>${escapeHtml(produto.nome)}</h3>
+                    <p>${escapeHtml(produto.observacoes || 'Sem observacoes.')}</p>
+                </div>
+                <dl>
+                    <div><dt>Estoque</dt><dd>${escapeHtml(productStockLabel(produto))}</dd></div>
+                    <div><dt>Minimo</dt><dd>${Number(produto.estoque_minimo || 0)}</dd></div>
+                    <div><dt>Venda</dt><dd>${currency(produto.preco_venda || 0)}</dd></div>
+                    <div><dt>Custo</dt><dd>${currency(produto.custo_unitario || 0)}</dd></div>
+                </dl>
+            `;
+            const actions = document.createElement('div');
+            actions.className = 'inventory-actions';
+            actions.append(actionButton('Entrada', 'secondary-button mini-button', () => moveProduct(produto, 'entrada')));
+            actions.append(actionButton('Saida', 'secondary-button mini-button', () => moveProduct(produto, 'saida')));
+            actions.append(actionButton('Venda', 'primary-button mini-button', () => moveProduct(produto, 'venda')));
+            actions.append(actionButton('Editar', 'secondary-button mini-button', () => fillProductForm(produto)));
+            actions.append(actionButton('Desativar', 'danger-button mini-button', () => archiveProduct(produto)));
+            card.append(actions);
+            fragment.appendChild(card);
+        });
+    }
+    
+    el.productList.replaceChildren(fragment);
 }
 
 function fillProductForm(produto) {
@@ -1380,9 +1419,36 @@ function clearProductForm() {
 }
 
 async function moveProduct(produto, tipo) {
-    const quantidadeTexto = window.prompt(`Quantidade para ${tipo} de ${produto.nome}?`, '1');
-    if (!quantidadeTexto) return;
-    const quantidade = Number(quantidadeTexto);
+    if (!el.inventoryMoveModal) {
+        // Fallback if modal not present
+        const quantidadeTexto = window.prompt(`Quantidade para ${tipo} de ${produto.nome}?`, '1');
+        if (!quantidadeTexto) return;
+        executeProductMovement(produto, tipo, Number(quantidadeTexto));
+        return;
+    }
+    
+    el.inventoryMoveTitle.textContent = tipo.charAt(0).toUpperCase() + tipo.slice(1) + ' de Estoque';
+    el.inventoryMoveDesc.textContent = `Produto: ${produto.nome} (Atual: ${produto.estoque_atual})`;
+    el.inventoryMoveQty.value = 1;
+    
+    el.inventoryMoveModal.showModal();
+    
+    // Cleanup previous listeners
+    const newForm = el.inventoryMoveForm.cloneNode(true);
+    el.inventoryMoveForm.parentNode.replaceChild(newForm, el.inventoryMoveForm);
+    el.inventoryMoveForm = newForm;
+    el.inventoryMoveQty = newForm.querySelector('#inventoryMoveQty');
+    
+    el.inventoryMoveForm.addEventListener('submit', (e) => {
+        // Only trigger if submitted by the button
+        if (e.submitter && e.submitter.id === 'inventoryMoveSubmit') {
+            const quantidade = Number(el.inventoryMoveQty.value);
+            executeProductMovement(produto, tipo, quantidade);
+        }
+    });
+}
+
+async function executeProductMovement(produto, tipo, quantidade) {
     if (!Number.isInteger(quantidade) || quantidade <= 0) {
         showToast('Informe uma quantidade inteira positiva.');
         return;
@@ -2011,6 +2077,26 @@ async function checkAdminAccess() {
         el.adminUserLabel.hidden = !status.usuario_obrigatorio;
         el.adminUser.required = Boolean(status.usuario_obrigatorio);
     }
+    
+    // Restrição visual por tipo de usuário (role)
+    if (status.role && status.role !== 'admin') {
+        const hideElements = [
+            'a[href="#financeiro"]', 'a[href="#produtos"]', 'a[href="#espera"]', 'a[href="#retorno"]'
+        ];
+        hideElements.forEach(selector => {
+            const elm = document.querySelector(selector);
+            if (elm) elm.style.display = 'none';
+        });
+    } else {
+        const showElements = [
+            'a[href="#financeiro"]', 'a[href="#produtos"]', 'a[href="#espera"]', 'a[href="#retorno"]'
+        ];
+        showElements.forEach(selector => {
+            const elm = document.querySelector(selector);
+            if (elm) elm.style.display = '';
+        });
+    }
+
     if (state.adminProtegido && !status.autenticado) {
         showLogin();
         return false;
@@ -2348,8 +2434,8 @@ if (el.adminLoginForm) {
             });
             if (el.adminUser) el.adminUser.value = '';
             el.adminToken.value = '';
+            await checkAdminAccess(); // Atualiza a UI de acordo com a role do usuario
             await refreshAll();
-            hideLogin();
             showToast('Acesso liberado.');
         } catch (error) {
             showLogin();
