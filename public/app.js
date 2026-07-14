@@ -115,6 +115,7 @@ const el = {
     adminUserLabel: document.querySelector('#adminUserLabel'),
     adminUser: document.querySelector('#adminUser'),
     adminToken: document.querySelector('#adminToken'),
+    logoutButton: document.querySelector('#logoutButton'),
     editDialog: document.querySelector('#editDialog'),
     editForm: document.querySelector('#editForm'),
     closeEdit: document.querySelector('#closeEdit'),
@@ -2441,6 +2442,17 @@ if (el.adminLoginForm) {
             showToast('Acesso liberado.');
         } catch (error) {
             showLogin();
+            showToast(error.message);
+        }
+    });
+}
+
+if (el.logoutButton) {
+    el.logoutButton.addEventListener('click', async () => {
+        try {
+            await api('/api/admin/logout', { method: 'POST' });
+            window.location.reload();
+        } catch (error) {
             showToast(error.message);
         }
     });
