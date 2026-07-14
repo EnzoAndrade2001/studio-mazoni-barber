@@ -23,7 +23,7 @@ function temBancoConfigurado() {
 const demoUsers = [
     { id: 1, usuario: 'leo', nome: 'Léo', dono: true, senha_hash: 'mock' },
     { id: 2, usuario: 'gustavo', nome: 'Gustavo', dono: false, senha_hash: 'mock' },
-    { id: 3, usuario: 'derick', nome: 'Derick', dono: false, senha_hash: 'mock' }
+    { id: 3, usuario: 'deryck', nome: 'Deryck', dono: false, senha_hash: 'mock' }
 ];
 
 function cookieSeguro() {
@@ -173,7 +173,7 @@ async function loginAdmin(req, res, next) {
         const mockUser = demoUsers.find(u => u.usuario === usuario);
         if (!mockUser) {
             registrarFalha(req);
-            return next(new HttpError(401, 'Usuario de demonstracao nao encontrado. Tente: leo, gustavo ou derick.'));
+            return next(new HttpError(401, 'Usuario de demonstracao nao encontrado. Tente: leo, gustavo ou deryck.'));
         }
         // Em modo local demo sem banco, aceitamos qualquer senha (mock)
         const role = mockUser.dono ? 'admin' : 'barber';

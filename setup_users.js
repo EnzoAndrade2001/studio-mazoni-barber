@@ -21,7 +21,7 @@ async function setupUsers() {
                 let defaultUser = p.nome.split(' ')[0].toLowerCase().replace(/[^a-z0-9]/g, '');
                 if (p.nome.toLowerCase().includes('leo')) defaultUser = 'leo';
                 else if (p.nome.toLowerCase().includes('gustavo')) defaultUser = 'gustavo';
-                else if (p.nome.toLowerCase().includes('derick')) defaultUser = 'derick';
+                else if (p.nome.toLowerCase().includes('deryck')) defaultUser = 'deryck';
                 
                 await pool.query('UPDATE profissionais SET usuario = $1, senha_hash = $2 WHERE id = $3', [defaultUser, hashString, p.id]);
                 console.log(`Usuario configurado: ${defaultUser} / 123456`);
