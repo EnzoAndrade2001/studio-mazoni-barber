@@ -2081,7 +2081,8 @@ async function checkAdminAccess() {
     // Restrição visual por tipo de usuário (role)
     if (status.role && status.role !== 'admin') {
         const hideElements = [
-            'a[href="#financeiro"]', 'a[href="#produtos"]', 'a[href="#espera"]', 'a[href="#retorno"]'
+            'a[href="#financeiro"]', 'a[href="#produtos"]', 'a[href="#espera"]', 'a[href="#retorno"]',
+            '#financeiro', '#produtos', '#espera', '#retorno'
         ];
         hideElements.forEach(selector => {
             const elm = document.querySelector(selector);
@@ -2089,7 +2090,8 @@ async function checkAdminAccess() {
         });
     } else {
         const showElements = [
-            'a[href="#financeiro"]', 'a[href="#produtos"]', 'a[href="#espera"]', 'a[href="#retorno"]'
+            'a[href="#financeiro"]', 'a[href="#produtos"]', 'a[href="#espera"]', 'a[href="#retorno"]',
+            '#financeiro', '#produtos', '#espera', '#retorno'
         ];
         showElements.forEach(selector => {
             const elm = document.querySelector(selector);
