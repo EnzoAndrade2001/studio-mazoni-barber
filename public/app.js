@@ -2089,7 +2089,7 @@ async function checkAdminAccess() {
         el.userNameDisplay.textContent = nome;
         el.userRoleDisplay.textContent = isDono ? 'Dono (Acesso Total)' : 'Barbeiro (Acesso Restrito)';
         if (el.userAvatar) {
-            el.userAvatar.textContent = nome.charAt(0);
+            el.userAvatar.innerHTML = `<img src="/${nome.toLowerCase()}.jpeg" alt="${nome}" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;" onerror="this.style.display='none'; this.parentElement.textContent='${nome.charAt(0)}'">`;
         }
     }
 
